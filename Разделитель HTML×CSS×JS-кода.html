@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Code Splitter (Premium)</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#111626; --panel2:#0f1422;
+    --text:#e8eefc; --muted:#a7b3d1;
+    --accent:#6aa6ff; --good:#32d583; --bad:#ff5c7a; --warn:#ffcc66;
+    --border:rgba(255,255,255,.10);
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, Sege UI, Roboto, Helvetica, Arial;
+    --mobilebar-pad:140px;
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f7fb; --panel:#ffffff; --panel2:#fbfcff;
+    --text:#0e1320; --muted:#4b5877;
+    --accent:#2563eb; --border:rgba(15,23,42,.12);
+    --shadow: 0 10px 30px rgba(2,6,23,.12);
+  }
+  *{box-sizing:border-box}
+  body{ margin:0; font-family:var(--sans); background:var(--bg); color:var(--text); }
+  header{
+    position:sticky; top:0; z-index:20;
+    background:linear-gradient(to bottom, rgba(0,0,0,.25), transparent);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .wrap{ max-width:1200px; margin:0 auto; padding:16px 16px 0; }
+  .top{ display:flex; gap:12px; align-items:center; justify-content:space-between; padding-bottom:12px; }
+  .title{ display:flex; flex-direction:column; gap:2px; }
+  h1{ font-size:16px; margin:0; font-weight:700; letter-spacing:.2px; }
+  .subtitle{ font-size:12px; color:var(--muted); }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button, select, input{ font:inherit; }
+  button{
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    box-shadow: 0 1px 0 rgba(255,255,255,.04) inset;
+  }
+  button:hover{ border-color:rgba(255,255,255,.20); }
+  button:disabled{ opacity:.55; cursor:not-allowed; }
+  .btnPrimary{
+    background:linear-gradient(180deg, rgba(106,166,255,.20), rgba(106,166,255,.06));
+    border-color:rgba(106,166,255,.35);
+  }
+  .btnDanger{
+    background:linear-gradient(180deg, rgba(255,92,122,.18), rgba(255,92,122,.05));
+    border-color:rgba(255,92,122,.35);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap:14px;
+    padding: 14px 16px 120px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  @media (max-width: 960px){
+    .grid{ grid-template-columns: 1fr; padding-bottom: var(--mobilebar-pad); }
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .cardHeader{
+    padding:12px 12px 10px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .cardHeader .h{ display:flex; flex-direction:column; gap:6px; }
+  .cardHeader .h .small{ color:var(--muted); font-size:12px; }
+  .pills{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .pill{
+    font-size:12px;
+    color:var(--muted);
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--panel2);
+  }
+  .pill.good{ border-color: rgba(50,213,131,.45); color: var(--good); }
+  .pill.bad{ border-color: rgba(255,92,122,.45); color: var(--bad); }
+  .pill.warn{ border-color: rgba(255,204,102,.45); color: var(--warn); }
+  textarea{
+    width:100%;
+    min-height: 360px;
+    resize: vertical;
+    border:0;
+    outline:0;
+    padding:12px;
+    background:transparent;
+    color:var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .controlsGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+    padding:12px;
+  }
+  .cell{
+    border:1px solid var(--border);
+    background:var(--panel2);
+    border-radius:12px;
+    padding:10px;
+  }
+  .cell label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .cell input, .cell select{
+    width:100%;
+    padding:10px 10px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text);
+    outline:none;
+  }
+  .cell input:focus, .cell select:focus{
+    border-color: rgba(106,166,255,.55);
+    box-shadow: 0 0 0 3px rgba(106,166,255,.18);
+  }
+  .hidden{ display:none !important; }
+  .actions{
+    padding: 0 12px 12px;
+    display:flex; gap:10px; flex-wrap:wrap;
+    align-items:flex-start;
+  }
+  .status{
+    font-size:12px;
+    color:var(--muted);
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px dashed var(--border);
+    text-align:left;
+    line-height: 1.35;
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    flex: 1 1 220px;
+    min-width: 220px;
+
+    display:-webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow:hidden;
+    min-height: calc(1.35em * 2 + 16px);
+  }
+  @media (min-width: 721px){
+    .status{
+      margin-left: 0;
+      flex: 0 0 100%;
+      order: 999;
+      min-width: 0;
+      max-width: 520px;
+
+      white-space: nowrap;
+      -webkit-line-clamp: 1;
+      min-height: calc(1.35em * 1 + 16px);
+    }
+  }
+  .partsWrap{ padding: 10px 12px 14px; }
+  .partsTop{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding: 10px 12px;
+    border-bottom:1px solid var(--border);
+  }
+  .partsTop .info{ font-size:12px; color:var(--muted); }
+  .parts{
+    display:flex; flex-direction:column; gap:10px;
+    padding: 12px;
+  }
+  .empty{
+    padding: 18px 12px;
+    color: var(--muted);
+    border:1px dashed var(--border);
+    border-radius:12px;
+    background:var(--panel2);
+  }
+  .part{
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--panel2);
+    overflow:hidden;
+  }
+  .ph{
+    padding:10px 10px;
+    display:flex; gap:10px; justify-content:space-between; align-items:center;
+    cursor:pointer;
+  }
+  .ph:focus{ outline: 2px solid rgba(106,166,255,.5); outline-offset: -2px; }
+  .meta{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:12px; color:var(--muted); }
+  .badge{
+    font-size:11px;
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    color:var(--muted);
+  }
+  .badge.kind{ border-color: rgba(106,166,255,.35); color: var(--accent); }
+  .badge.forced{ border-color: rgba(255,204,102,.45); color: var(--warn); }
+  .controls{ display:flex; gap:8px; }
+  .controls button{ padding:7px 10px; border-radius:10px; font-size:12px; }
+
+  .partBar{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    padding:8px 10px;
+    border-top:1px solid var(--border);
+    background: rgba(15,20,34,.55);
+    backdrop-filter: blur(8px);
+  }
+  .partBar button{ padding:7px 10px; border-radius:10px; font-size:12px; }
+
+  pre{
+    margin:0;
+    padding: 0;
+    background: #0b1020;
+    color: #e8eefc;
+    border-top:1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.45;
+    overflow:auto;
+    max-height: 360px;
+    position: relative;
+  }
+
+  .dlInPre{
+    position: sticky;
+    top: 8px;
+    float: right;
+    margin: 8px 8px 0 0;
+    z-index: 2;
+    padding:7px 10px;
+    border-radius:10px;
+    font-size:12px;
+  }
+
+  :root[data-theme="light"] pre{ background: #0b1020; color: #e8eefc; }
+  .mobileBar{
+    position:fixed; left:0; right:0; bottom:0;
+    z-index:30;
+    border-top:1px solid var(--border);
+    background: rgba(17,22,38,.78);
+    backdrop-filter: blur(10px);
+    padding:10px;
+    display:none;
+  }
+  :root[data-theme="light"] .mobileBar{ background: rgba(255,255,255,.78); }
+  .mobileBar .inner{
+    max-width:1200px;
+    margin:0 auto;
+    display:flex; gap:10px;
+  }
+  .mobileBar button{ flex:1; }
+  @media (max-width: 720px){
+    .mobileBar{ display:block; }
+    .actions.actionsMain{ display:none; }
+  }
+  .fileInput{ display:none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="title">
+        <h1>Code Splitter</h1>
+        <div class="subtitle">Разделитель кода HTML/CSS/JS</div>
+      </div>
+      <div class="row">
+        <button id="btnTheme" type="button" aria-label="Переключить тему"></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="grid">
+  <section class="card">
+    <div class="cardHeader">
+      <div class="h">
+        <div><strong>Исходник</strong></div>
+        <div class="small"><span id="srcInfo">Символов: 0</span></div>
+      </div>
+      <div class="pills">
+        <span id="eolPill" class="pill">EOL: —</span>
+        <span id="utf8Pill" class="pill">UTF‑8: —</span>
+        <span id="shaPill" class="pill">SHA‑256: —</span>
+      </div>
+    </div>
+
+    <textarea id="src" spellcheck="false" placeholder="Вставьте код сюда..."></textarea>
+
+    <div class="actions">
+      <input id="fileInput" class="fileInput" type="file" />
+      <button id="btnLoadFile" type="button">Файл…</button>
+      <button id="btnPaste" type="button">Вставить</button>
+      <button id="btnLoadExample" type="button">Пример</button>
+      <button id="btnClear" type="button" class="btnDanger">Очистить</button>
+      <div id="statusText" class="status"></div>
+    </div>
+
+    <div class="controlsGrid">
+      <div class="cell">
+        <label>Режим</label>
+        <select id="mode">
+          <option value="chars">По символам</option>
+          <option value="parts">По частям</option>
+        </select>
+      </div>
+
+      <div class="cell" id="cellCharsPerPart">
+        <label>Символов на часть</label>
+        <input id="charsPerPart" type="number" value="15000" min="1" />
+      </div>
+
+      <div class="cell hidden" id="cellPartsCount">
+        <label>Количество частей</label>
+        <input id="partsCount" type="number" value="5" min="1" />
+      </div>
+
+      <div class="cell">
+        <label>Hard limit (0 = выкл.)</label>
+        <input id="hardLimit" type="number" value="0" min="0" />
+      </div>
+
+      <div class="cell">
+        <label>Overlap (0 = выкл.)</label>
+        <input id="overlap" type="number" value="0" min="0" />
+      </div>
+    </div>
+
+    <div class="actions actionsMain">
+      <button id="btnSplit" class="btnPrimary" type="button">Разделить</button>
+      <button id="btnVerify" type="button">Проверить</button>
+      <button id="btnCopyAll" type="button">Копировать всё</button>
+    </div>
+  </section>
+
+  <aside class="card">
+    <div class="partsTop">
+      <div class="info">
+        <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;">
+          <span id="splitPill" class="pill">Частей: —</span>
+          <span id="identityPill" class="pill">ID: —</span>
+          <span id="perfPill" class="pill">Perf: —</span>
+        </div>
+      </div>
+      <div><button id="btnTogglePreview" type="button">Свернуть</button></div>
+    </div>
+
+    <div class="partsWrap">
+      <div id="parts" class="parts">
+        <div id="emptyState" class="empty">Пока частей нет. Нажмите «Разделить».</div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div id="mobileBar" class="mobileBar" role="navigation" aria-label="Основные действия">
+  <div class="inner">
+    <button id="btnSplitMobile" class="btnPrimary" type="button">Разделить</button>
+    <button id="btnVerifyMobile" type="button">Проверить</button>
+    <button id="btnCopyAllMobile" type="button">Копировать всё</button>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+  const q = (s) => document.querySelector(s);
+  const must = (s) => { const el = q(s); if (!el) throw new Error("Нет элемента: " + s); return el; };
+
+  const els = {
+    src: must("#src"),
+    srcInfo: must("#srcInfo"),
+    eolPill: must("#eolPill"),
+    utf8Pill: must("#utf8Pill"),
+    shaPill: must("#shaPill"),
+    splitPill: must("#splitPill"),
+    identityPill: must("#identityPill"),
+    perfPill: must("#perfPill"),
+    statusText: must("#statusText"),
+    emptyState: must("#emptyState"),
+
+    btnTheme: must("#btnTheme"),
+
+    fileInput: must("#fileInput"),
+    btnLoadFile: must("#btnLoadFile"),
+    btnPaste: must("#btnPaste"),
+    btnLoadExample: must("#btnLoadExample"),
+    btnClear: must("#btnClear"),
+
+    mode: must("#mode"),
+    charsPerPart: must("#charsPerPart"),
+    partsCount: must("#partsCount"),
+    cellCharsPerPart: must("#cellCharsPerPart"),
+    cellPartsCount: must("#cellPartsCount"),
+
+    hardLimit: must("#hardLimit"),
+    overlap: must("#overlap"),
+
+    btnTogglePreview: must("#btnTogglePreview"),
+
+    btnSplit: must("#btnSplit"),
+    btnSplitMobile: must("#btnSplitMobile"),
+    btnVerify: must("#btnVerify"),
+    btnVerifyMobile: must("#btnVerifyMobile"),
+    btnCopyAll: must("#btnCopyAll"),
+    btnCopyAllMobile: must("#btnCopyAllMobile"),
+
+    parts: must("#parts"),
+  };
+
+  const setStatus = (t) => els.statusText.textContent = String(t||"");
+  const setPerf = (t) => els.perfPill.textContent = "Perf: " + String(t||"—");
+  const setIdentity = (kind, t) => {
+    els.identityPill.classList.remove("good","bad","warn");
+    if (kind) els.identityPill.classList.add(kind);
+    els.identityPill.textContent = t;
+  };
+
+  const canClipboardWrite = () => !!(navigator.clipboard && navigator.clipboard.writeText);
+  const canClipboardRead  = () => !!(navigator.clipboard && navigator.clipboard.readText);
+
+  const fallbackCopy = async (text) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try{
+      const ok = document.execCommand("copy");
+      if (!ok) throw new Error("execCommand(copy) failed");
+    } finally {
+      ta.remove();
+    }
+  };
+
+  const copyText = async (text) => {
+    text = String(text ?? "");
+    if (!text) return;
+    try{
+      if (canClipboardWrite()) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        await fallbackCopy(text);
+      }
+    } catch (e) {
+      await fallbackCopy(text);
+    }
+  };
+
+  const pasteText = async () => {
+    if (canClipboardRead()) {
+      return await navigator.clipboard.readText();
+    }
+    return prompt("Вставьте текст сюда (Ctrl+V):", "") || "";
+  };
+
+  const clampInt = (v, def, min, max) => {
+    const x = Number.parseInt(String(v ?? ""), 10);
+    if (!Number.isFinite(x)) return def;
+    return Math.min(max, Math.max(min, x));
+  };
+
+  const detectEOL = (text) => {
+    text = String(text || "");
+    const crlf = (text.match(/\r\n/g) || []).length;
+    const allLf = (text.match(/\n/g) || []).length;
+    const lf = allLf - crlf;
+    const cr = (text.match(/\r(?!\n)/g) || []).length;
+    if (!text) return "—";
+    if (crlf && !lf && !cr) return "CRLF";
+    if (lf && !crlf && !cr) return "LF";
+    if (cr && !crlf && !lf) return "CR";
+    return `mixed (CRLF:${crlf} LF:${lf} CR:${cr})`;
+  };
+
+  const normalizeEOLToLF = (text) => String(text||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+
+  const utf8ByteLengthRange = (str, start, end) => {
+    str = String(str || "");
+    start = Math.max(0, start|0);
+    end = Math.min(str.length, end|0);
+    let bytes = 0;
+    for (let i = start; i < end; i++) {
+      const c = str.charCodeAt(i);
+      if (c <= 0x7f) bytes++;
+      else if (c <= 0x7ff) bytes += 2;
+      else if (c >= 0xd800 && c <= 0xdbff) {
+        const next = str.charCodeAt(i+1);
+        if (i + 1 < end && next >= 0xdc00 && next <= 0xdfff) { bytes += 4; i++; }
+        else bytes += 3;
+      } else bytes += 3;
+    }
+    return bytes;
+  };
+
+  const sha256Hex = async (text) => {
+    const enc = new TextEncoder();
+    const buf = await crypto.subtle.digest("SHA-256", enc.encode(text));
+    const bytes = new Uint8Array(buf);
+    let hex = "";
+    for (const b of bytes) hex += b.toString(16).padStart(2,"0");
+    return hex;
+  };
+
+  const CODE_KIND = {
+    JS: "js",
+    CSS: "css",
+    HTML: "html",
+    JSON: "json",
+    MD: "md",
+    TEXT: "text",
+  };
+
+  const detectKind = (text) => {
+    text = String(text||"");
+    const s = text.trimStart();
+    if (s.startsWith("<!doctype") || s.startsWith("<html") || s.startsWith("<")) return CODE_KIND.HTML;
+    if (s.startsWith("{") || s.startsWith("[")) return CODE_KIND.JSON;
+    if (s.startsWith("# ") || s.startsWith("## ") || s.startsWith("```")) return CODE_KIND.MD;
+    if (s.includes("{") && s.includes("}") && s.includes(":") && s.includes(";") && !s.includes("function")) return CODE_KIND.CSS;
+    return CODE_KIND.JS;
+  };
+
+  const isWordChar = (ch) => /[0-9A-Za-z_\u00C0-\uFFFF]/.test(ch);
+
+  const isUnsafeCutToken = (text, pos) => {
+    const a = text[pos - 1] || "";
+    const b = text[pos] || "";
+    const ca = a ? a.charCodeAt(0) : 0;
+    const cb = b ? b.charCodeAt(0) : 0;
+    if (ca >= 0xD800 && ca <= 0xDBFF && cb >= 0xDC00 && cb <= 0xDFFF) return true;
+    if (a === "\\") return true;
+    return false;
+  };
+
+  const getUnsafeMaskForKind = (text, kind) => {
+    text = String(text||"");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    const mask = new Uint8Array(len+1);
+
+    if (kind === CODE_KIND.HTML) {
+      let inTag = false;
+      let inQuote = null;
+      for (let i = 0; i < len; i++) {
+        const ch = text[i];
+        if (!inTag) {
+          if (ch === "<") { inTag = true; mask[i] = 1; mask[i+1] = 1; }
+        } else {
+          mask[i] = 1; mask[i+1] = 1;
+          if (inQuote) {
+            if (ch === inQuote && text[i-1] !== "\\") inQuote = null;
+          } else {
+            if (ch === '"' || ch === "'") inQuote = ch;
+            else if (ch === ">") { inTag = false; }
+          }
+        }
+      }
+    } else if (kind === CODE_KIND.JS || kind === CODE_KIND.JSON) {
+      let inStr = null;
+      let inTemplate = false;
+      let inLineComment = false;
+      let inBlockComment = false;
+      let inRegex = false;
+
+      for (let i = 0; i < len; i++) {
+        const ch = text[i];
+        const next = text[i+1];
+
+        if (inLineComment) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "\n") inLineComment = false;
+          continue;
+        }
+        if (inBlockComment) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "*" && next === "/") { mask[i] = 1; mask[i+1] = 1; inBlockComment = false; i++; }
+          continue;
+        }
+        if (inStr) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "\\" ) { mask[i] = 1; mask[i+1] = 1; i++; continue; }
+          if (ch === inStr) inStr = null;
+          continue;
+        }
+        if (inTemplate) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "\\" ) { mask[i] = 1; mask[i+1] = 1; i++; continue; }
+          if (ch === "`") inTemplate = false;
+          continue;
+        }
+        if (inRegex) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "\\" ) { mask[i] = 1; mask[i+1] = 1; i++; continue; }
+          if (ch === "/" ) inRegex = false;
+          continue;
+        }
+
+        if (ch === "/" && next === "/") { inLineComment = true; mask[i] = 1; mask[i+1] = 1; i++; continue; }
+        if (ch === "/" && next === "*") { inBlockComment = true; mask[i] = 1; mask[i+1] = 1; i++; continue; }
+        if (ch === "'" || ch === '"') { inStr = ch; mask[i] = 1; mask[i+1] = 1; continue; }
+        if (ch === "`") { inTemplate = true; mask[i] = 1; mask[i+1] = 1; continue; }
+
+        if (ch === "/" && next && next !== "/" && next !== "*") {
+          let j = i-1;
+          while (j >= 0 && /\s/.test(text[j])) j--;
+          const prev = j >= 0 ? text[j] : "";
+          if (!prev || /[({[=,:;!&|?+\-~*%^<>]/.test(prev)) {
+            inRegex = true;
+            mask[i] = 1; mask[i+1] = 1;
+            continue;
+          }
+        }
+      }
+    }
+
+    return mask;
+  };
+
+  const partsFromCuts = (cuts, overlap) => {
+    overlap = Math.max(0, overlap|0);
+    const res = [];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const start = cuts[i];
+      const end = cuts[i+1];
+      if (end <= start) continue;
+      const realStart = (i === 0) ? start : Math.max(0, start - overlap);
+      res.push({ start: realStart, end, forced: false });
+    }
+    if (res.length) res[0].start = 0;
+    return res;
+  };
+
+  const computeMaxUtf8BytesForText = (text) => {
+    const len = text.length;
+    const b = utf8ByteLengthRange(text, 0, len);
+    return b;
+  };
+
+  const bestCutInRangeScored = (text, leftBound, rightBound, kind, isOkCut) => {
+    const len = text.length;
+    if (leftBound > rightBound) return -1;
+    leftBound = Math.max(1, leftBound|0);
+    rightBound = Math.min(len-1, rightBound|0);
+
+    const scoreAt = (pos) => {
+      const prev = text[pos - 1] || "";
+      const prev2 = text[pos - 2] || "";
+      const next = text[pos] || "";
+
+      if (isWordChar(prev) && isWordChar(next)) return -1e9;
+
+      let s = 0;
+
+      if (prev === "\n") {
+        s += 100000;
+        if (prev2 === "\n") s += 8000;
+        return s + (pos - leftBound);
+      }
+
+      if (prev === ";") s += 50000;
+      else if (prev === ",") s += (kind === CODE_KIND.JSON ? 52000 : 42000);
+      else if (prev === "}") s += 46000;
+      else if (prev === ")") s += 22000;
+      else if (prev === "]") s += 22000;
+      else if (prev === ">") s += (kind === CODE_KIND.HTML ? 35000 : 8000);
+
+      s += (pos - leftBound);
+      return s;
+    };
+
+    let bestPos = -1;
+    let bestScore = -1e18;
+
+    for (let pos = rightBound; pos >= leftBound; pos--) {
+      if (!isOkCut(pos)) continue;
+      const prev = text[pos - 1] || "";
+      if (prev !== "\n" && prev !== ";" && prev !== "," && prev !== "}" && prev !== ")" && prev !== "]" && prev !== ">") continue;
+
+      const sc = scoreAt(pos);
+      if (sc > bestScore) { bestScore = sc; bestPos = pos; }
+    }
+    return bestPos;
+  };
+
+  const splitByCharsPremiumNoTail = (text, softLimit, overlap, kind) => {
+    text = String(text || "");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    if (!len) return [];
+    softLimit = Math.max(1, softLimit | 0);
+    overlap = Math.max(0, overlap | 0);
+
+    const unsafeMask = getUnsafeMaskForKind(text, kind);
+
+    const isOkCut = (pos) => {
+      if (pos <= 0 || pos >= len) return true;
+      if (unsafeMask && unsafeMask[pos]) return false;
+      if (isUnsafeCutToken(text, pos)) return false;
+      return true;
+    };
+
+    const fixSurrogateCut = (pos) => {
+      if (pos <= 0 || pos >= len) return pos;
+      const a = text.charCodeAt(pos - 1);
+      const b = text.charCodeAt(pos);
+      if (a >= 0xD800 && a <= 0xDBFF && b >= 0xDC00 && b <= 0xDFFF) return pos - 1;
+      return pos;
+    };
+
+    const findCutAtOrBefore = (target, leftBound, rightBound) => {
+      target = Math.max(leftBound, Math.min(rightBound, target | 0));
+
+      const windowLen = rightBound - leftBound + 1;
+      const preferredLeft = Math.max(leftBound, rightBound - Math.floor(windowLen * 0.30));
+
+      let best = bestCutInRangeScored(text, preferredLeft, target, kind, isOkCut);
+      if (best !== -1) return { cut: best, forced: false };
+
+      best = bestCutInRangeScored(text, leftBound, target, kind, isOkCut);
+      if (best !== -1) return { cut: best, forced: false };
+
+      let pos = fixSurrogateCut(target);
+      if (isOkCut(pos)) return { cut: pos, forced: true };
+
+      const R = 2000;
+      for (let d = 1; d <= R; d++) {
+        const a = fixSurrogateCut(target - d);
+        if (a >= leftBound && isOkCut(a)) return { cut: a, forced: true };
+      }
+
+      pos = fixSurrogateCut(target);
+      if (pos <= leftBound) pos = leftBound;
+      if (pos >= rightBound) pos = rightBound;
+      return { cut: pos, forced: true };
+    };
+
+    const parts = [];
+    let start = 0;
+
+    while (start < len) {
+      const targetEnd = Math.min(len, start + softLimit);
+
+      if (targetEnd >= len) {
+        parts.push({ start, end: len, forced: false });
+        break;
+      }
+
+      const left = start + 1;
+      const right = targetEnd;
+      const res = findCutAtOrBefore(targetEnd, left, right);
+
+      parts.push({ start, end: res.cut, forced: res.forced });
+
+      start = Math.max(res.cut - overlap, res.cut);
+    }
+
+    if (parts.length) parts[0].start = 0;
+    return parts;
+  };
+
+  const lowerBound = (arr, x) => {
+    let lo = 0, hi = arr.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (arr[mid] < x) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
+
+  const splitForcedByParts = (text, n, hard, overlap, kind) => {
+    text = String(text || "");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    if (!len) return [];
+
+    n = Math.max(1, Math.min(n|0, len));
+
+    const unsafeMask = getUnsafeMaskForKind(text, kind);
+
+    const isOkCut = (pos) => {
+      if (pos <= 0 || pos >= len) return true;
+      if (unsafeMask && unsafeMask[pos]) return false;
+      if (isUnsafeCutToken(text, pos)) return false;
+      return true;
+    };
+
+    const nudge = (pos, left, right) => {
+      pos = Math.max(left, Math.min(right, pos|0));
+      if (isOkCut(pos)) return pos;
+
+      const R2 = 1200;
+      for (let d = 0; d <= R2; d++) {
+        const a = pos - d;
+        if (a >= left && isOkCut(a)) {
+          const prev = text[a - 1] || "";
+          if (prev === "\n" || prev === ";" || prev === "," || prev === "}" || prev === ")" || prev === "]" || prev === ">") return a;
+        }
+        const b = pos + d;
+        if (b <= right && isOkCut(b)) {
+          const prev = text[b - 1] || "";
+          if (prev === "\n" || prev === ";" || prev === "," || prev === "}" || prev === ")" || prev === "]" || prev === ">") return b;
+        }
+      }
+
+      const R = 2000;
+      for (let d = 1; d <= R; d++) {
+        const a = pos - d, b = pos + d;
+        if (a >= left && isOkCut(a)) return a;
+        if (b <= right && isOkCut(b)) return b;
+      }
+      return pos;
+    };
+
+    const cuts = [0];
+    let start = 0;
+
+    for (let i = 1; i < n; i++) {
+      const ideal = Math.floor(len * i / n);
+
+      let left = start + 1;
+      let right = len - (n - i);
+
+      if (hard > 0) right = Math.min(right, start + hard);
+      if (right < left) right = left;
+
+      let cut = nudge(ideal, left, right);
+      if (cut <= start) cut = left;
+
+      cuts.push(cut);
+      start = cut;
+    }
+    cuts.push(len);
+
+    const parts = [];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const baseStart = cuts[i];
+      const s = (i === 0) ? baseStart : Math.max(0, baseStart - overlap);
+      const e = cuts[i+1];
+      if (e > s) parts.push({ start: s, end: e, forced: true });
+    }
+    if (parts.length) parts[0].start = 0;
+    return parts;
+  };
+
+  const buildSafeCuts = (text, kind, hardLimit) => {
+    text = String(text||"");
+    kind = kind || detectKind(text);
+    hardLimit = Math.max(0, hardLimit|0);
+    const len = text.length;
+
+    const unsafeMask = getUnsafeMaskForKind(text, kind);
+    const cuts = [0];
+
+    const isOkCut = (pos) => {
+      if (pos <= 0 || pos >= len) return true;
+      if (unsafeMask && unsafeMask[pos]) return false;
+      if (isUnsafeCutToken(text, pos)) return false;
+      return true;
+    };
+
+    // FIX: for ';' (and other inline terminators) only allow cut if immediately followed by '\n'
+    // so we never split "statement" like `foo()` and move ';' to next part.
+    for (let i = 0; i < len; i++) {
+      if (hardLimit > 0 && i > hardLimit) break;
+
+      const ch = text[i];
+      if (ch === ";" || ch === "," || ch === "}" || ch === ")" || ch === "]" || ch === ">") {
+        if (text[i+1] !== "\n") continue; // must be end-of-line
+      } else if (ch !== "\n") {
+        continue;
+      }
+
+      const pos = i + 1;
+      if (!isOkCut(pos)) continue;
+
+      const a = text[pos - 1] || "";
+      const b = text[pos] || "";
+      if (isWordChar(a) && isWordChar(b)) continue;
+
+      cuts.push(pos);
+    }
+
+    cuts.push(len);
+    cuts.sort((a,b)=>a-b);
+
+    if (cuts[0] !== 0) cuts.unshift(0);
+    if (cuts[cuts.length-1] !== len) cuts.push(len);
+    return cuts;
+  };
+
+  const forceCutsEvenly = (text, n, hard, kind) => {
+    text = String(text||"");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    n = Math.max(1, n|0);
+    const cuts = [0];
+    if (n === 1 || len === 0) { cuts.push(len); return cuts; }
+
+    const unsafeMask = getUnsafeMaskForKind(text, kind);
+
+    const isOkCut = (pos) => {
+      if (pos <= 0 || pos >= len) return true;
+      if (unsafeMask && unsafeMask[pos]) return false;
+      if (isUnsafeCutToken(text, pos)) return false;
+      return true;
+    };
+
+    let last = 0;
+    for (let i = 1; i < n; i++) {
+      let target = Math.floor(len * i / n);
+      let left = last + 1;
+      let right = len - (n - i);
+
+      if (hard > 0) right = Math.min(right, last + hard);
+      if (right < left) right = left;
+
+      let best = target;
+      if (best < left) best = left;
+      if (best > right) best = right;
+
+      if (!isOkCut(best)) {
+        let found = -1;
+        const R = 2000;
+        for (let d = 1; d <= R; d++) {
+          const a = best - d;
+          const b = best + d;
+          if (a >= left && isOkCut(a)) { found = a; break; }
+          if (b <= right && isOkCut(b)) { found = b; break; }
+        }
+        if (found !== -1) best = found;
+      }
+
+      cuts.push(best);
+      last = best;
+    }
+    cuts.push(len);
+
+    for (let i = 1; i < cuts.length; i++) {
+      if (cuts[i] <= cuts[i-1]) cuts[i] = Math.min(len, cuts[i-1] + 1);
+    }
+    cuts[cuts.length-1] = len;
+    return cuts;
+  };
+
+  const splitByPartsCountBalanced = (text, requestedParts, hard, overlap, kind) => {
+    text = String(text||"");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    requestedParts = Math.max(1, requestedParts|0);
+    hard = Math.max(0, hard|0);
+    overlap = Math.max(0, overlap|0);
+
+    if (len === 0) return [];
+    if (requestedParts === 1) return [{ start:0, end:len, forced:false }];
+
+    const safeCuts = buildSafeCuts(text, kind, 0);
+
+    const target = len / requestedParts;
+
+    const cuts = [0];
+    let prev = 0;
+
+    for (let i = 1; i < requestedParts; i++) {
+      const ideal = Math.round(target * i);
+      let left = prev + 1;
+      let right = len - (requestedParts - i);
+      if (hard > 0) right = Math.min(right, prev + hard);
+      if (right < left) right = left;
+
+      const idx = lowerBound(safeCuts, ideal);
+      let best = null;
+
+      for (let j = Math.max(0, idx-36); j < Math.min(safeCuts.length, idx+36); j++) {
+        const c = safeCuts[j];
+        if (c < left || c > right) continue;
+
+        const prevCh = text[c - 1] || "";
+        const tier = (prevCh === "\n") ? 0 : 1;
+        const score = Math.abs(c - ideal) * 10 + tier;
+
+        if (best === null || score < best.score) best = { pos: c, score };
+      }
+
+      if (!best) {
+        return splitForcedByParts(text, requestedParts|0, hard, overlap, kind);
+      }
+
+      cuts.push(best.pos);
+      prev = best.pos;
+    }
+
+    cuts.push(len);
+    const parts = partsFromCuts(cuts, overlap);
+    return parts;
+  };
+
+  const buildPreviewHtml = (text) => {
+    text = String(text||"");
+    let esc = text
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;");
+    return esc;
+  };
+
+  const makePartNode = (idx, part, text, kind, totalParts) => {
+    const div = document.createElement("div");
+    div.className = "part";
+
+    const header = document.createElement("div");
+    header.className = "ph";
+    header.tabIndex = 0;
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+
+    const badgeIdx = document.createElement("span");
+    badgeIdx.className = "badge";
+    badgeIdx.textContent = `Часть ${idx+1}/${totalParts}`;
+
+    const badgeRange = document.createElement("span");
+    badgeRange.className = "badge";
+    badgeRange.textContent = `Диапазон: ${part.start}–${part.end}`;
+
+    const chars = part.end - part.start;
+    const bytes = utf8ByteLengthRange(text, part.start, part.end);
+
+    const badgeChars = document.createElement("span");
+    badgeChars.className = "badge";
+    badgeChars.textContent = `Символов: ${chars}`;
+
+    const badgeBytes = document.createElement("span");
+    badgeBytes.className = "badge";
+    badgeBytes.textContent = `Байт: ${bytes}`;
+
+    const badgeKind = document.createElement("span");
+    badgeKind.className = "badge kind";
+    badgeKind.textContent = kind.toUpperCase();
+
+    meta.append(badgeIdx, badgeRange, badgeChars, badgeBytes, badgeKind);
+
+    if (part.forced) {
+      const badgeForced = document.createElement("span");
+      badgeForced.className = "badge forced";
+      badgeForced.textContent = "forced";
+      meta.append(badgeForced);
+    }
+
+    const ctrls = document.createElement("div");
+    ctrls.className = "controls";
+
+    const btnCopy = document.createElement("button");
+    btnCopy.type = "button";
+    btnCopy.textContent = "Копировать";
+    ctrls.append(btnCopy);
+
+    header.append(meta, ctrls);
+
+    const btnDl = document.createElement("button");
+    btnDl.type = "button";
+    btnDl.textContent = "Скачать";
+    btnDl.className = "dlInPre";
+
+    const pre = document.createElement("pre");
+    pre.className = "hidden";
+    pre.append(btnDl);
+    pre.insertAdjacentHTML("beforeend", buildPreviewHtml(text.slice(part.start, part.end)));
+
+    const toggle = () => {
+      const open = pre.classList.contains("hidden");
+      pre.classList.toggle("hidden", !open);
+    };
+
+    header.addEventListener("click", toggle);
+    header.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+
+    btnCopy.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      try{
+        const chunk = text.slice(part.start, part.end);
+        await copyText(chunk);
+        setStatus(`Скопировано: часть #${idx+1} (${chunk.length} chars).`);
+      }catch(err){
+        console.error(err);
+        setStatus("Не удалось скопировать часть.");
+      }
+    });
+
+    btnDl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const chunk = text.slice(part.start, part.end);
+      const blob = new Blob([chunk], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `part_${idx+1}.${kind === CODE_KIND.TEXT ? "txt" : kind}`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    });
+
+    div.append(header, pre);
+    return div;
+  };
+
+  let lastText = "";
+  let lastKind = CODE_KIND.JS;
+  let lastParts = [];
+
+  const updateActionButtons = () => {
+    const hasText = !!(els.src.value && els.src.value.length);
+    const hasParts = !!(lastParts && lastParts.length);
+
+    const setDis = (el, v) => { if (el) el.disabled = !!v; };
+
+    setDis(els.btnSplit, !hasText);
+    setDis(els.btnSplitMobile, !hasText);
+
+    setDis(els.btnVerify, !hasParts);
+    setDis(els.btnVerifyMobile, !hasParts);
+
+    setDis(els.btnCopyAll, !hasParts);
+    setDis(els.btnCopyAllMobile, !hasParts);
+  };
+
+  const renderParts = (text, partsMeta, kind) => {
+    els.parts.innerHTML = "";
+    if (!partsMeta || !partsMeta.length) {
+      els.emptyState.classList.remove("hidden");
+      els.parts.appendChild(els.emptyState);
+      els.splitPill.textContent = "Частей: —";
+      updateActionButtons();
+      return;
+    }
+    els.emptyState.classList.add("hidden");
+
+    for (let i = 0; i < partsMeta.length; i++) {
+      const node = makePartNode(i, partsMeta[i], text, kind, partsMeta.length);
+      els.parts.appendChild(node);
+    }
+
+    els.splitPill.textContent = `Частей: ${partsMeta.length}`;
+    updateActionButtons();
+  };
+
+  const verifyRebuild = (text, partsMeta) => {
+    if (!partsMeta || !partsMeta.length) return { ok: false, reason: "Нет частей" };
+    let rebuilt = "";
+    for (let i = 0; i < partsMeta.length; i++) {
+      const p = partsMeta[i];
+      const chunk = text.slice(p.start, p.end);
+      if (i === 0) rebuilt += chunk;
+      else {
+        const overlap = Math.max(0, partsMeta[i].start - partsMeta[i-1].end);
+        rebuilt += chunk.slice(Math.max(0, -overlap));
+      }
+    }
+    const ok = (rebuilt === text);
+    return { ok, reason: ok ? "OK" : "Mismatch" };
+  };
+
+  const updateSrcInfo = async () => {
+    const text = els.src.value || "";
+    els.srcInfo.textContent = `Символов: ${text.length}`;
+    els.eolPill.textContent = "EOL: " + detectEOL(text);
+
+    const bytes = computeMaxUtf8BytesForText(text);
+    els.utf8Pill.textContent = "UTF‑8: " + (bytes ? `${bytes} байтов` : "—");
+
+    if (!text) {
+      els.shaPill.textContent = "SHA‑256: —";
+    } else {
+      els.shaPill.textContent = "SHA‑256: …";
+      try{
+        const hex = await sha256Hex(text);
+        els.shaPill.textContent = "SHA‑256: " + hex.slice(0, 16) + "…";
+      }catch{
+        els.shaPill.textContent = "SHA‑256: ошибка";
+      }
+    }
+
+    updateActionButtons();
+  };
+
+  const setModeUi = () => {
+    const mode = els.mode.value;
+    els.cellCharsPerPart.classList.toggle("hidden", mode !== "chars");
+    els.cellPartsCount.classList.toggle("hidden", mode !== "parts");
+  };
+
+  const splitNow = () => {
+    const t0 = performance.now();
+
+    lastText = els.src.value || "";
+    lastKind = detectKind(lastText);
+
+    const mode = els.mode.value;
+    const hard = clampInt(els.hardLimit.value, 0, 0, 1e9);
+    const overlap = clampInt(els.overlap.value, 0, 0, 1e9);
+
+    let partsMeta = [];
+    const safeOverlap0 = Math.max(0, overlap|0);
+
+    if (!lastText) {
+      lastParts = [];
+      renderParts(lastText, lastParts, lastKind);
+      setIdentity("warn", "ID: —");
+      setPerf("—");
+      setStatus("Пустой текст.");
+      return;
+    }
+
+    if (mode === "parts") {
+      const n = clampInt(els.partsCount.value, 1, 1, 2000);
+      partsMeta = splitByPartsCountBalanced(lastText, n, hard, safeOverlap0, lastKind);
+      setStatus(`Разделено на ${partsMeta.length} частей (parts-mode).`);
+    } else {
+      const soft = clampInt(els.charsPerPart.value, 15000, 1, 1e9);
+
+      if (hard > 0) {
+        partsMeta = splitByPartsCountBalanced(
+          lastText,
+          Math.max(1, Math.ceil(lastText.length / soft)),
+          hard,
+          safeOverlap0,
+          lastKind
+        );
+        setStatus(`Разделено на ${partsMeta.length} частей (chars+hard).`);
+      } else {
+        partsMeta = splitByCharsPremiumNoTail(lastText, soft, safeOverlap0, lastKind);
+        setStatus(`Разделено на ${partsMeta.length} частей (chars-limit).`);
+      }
+    }
+
+    lastParts = partsMeta;
+    renderParts(lastText, lastParts, lastKind);
+
+    const t1 = performance.now();
+    setPerf(`${Math.round(t1 - t0)} мс`);
+
+    setIdentity("good", `ID: ${lastKind.toUpperCase()}`);
+  };
+
+  const verifyNow = async () => {
+    if (!lastText || !lastParts.length) { setStatus("Нечего проверять."); return; }
+    const res = verifyRebuild(lastText, lastParts);
+
+    els.identityPill.classList.remove("good","bad","warn");
+    if (res.ok) {
+      els.identityPill.classList.add("good");
+      setStatus("Проверка: OK (восстановление совпадает).");
+    } else {
+      els.identityPill.classList.add("bad");
+      setStatus("Проверка: НЕСОВПАДЕНИЕ (" + res.reason + ").");
+    }
+  };
+
+  const copyAllNow = async () => {
+    if (!lastText || !lastParts.length) { setStatus("Нечего копировать."); return; }
+    try{
+      const totalParts = lastParts.length;
+      const out = lastParts.map((p, i) => {
+        const chunk = lastText.slice(p.start, p.end);
+        const chars = p.end - p.start;
+        const bytes = utf8ByteLengthRange(lastText, p.start, p.end);
+        const header = `/* ===== Часть ${i+1}/${totalParts} | kind ${lastKind} | Диапазон ${p.start}-${p.end} | Символов ${chars} | Байт ${bytes} ===== */`;
+        return header + "\n\n" + chunk;
+      }).join("\n\n");
+      await copyText(out);
+      setStatus(`Скопировано всё (${out.length} chars).`);
+    }catch(err){
+      console.error(err);
+      setStatus("Не удалось скопировать всё.");
+    }
+  };
+
+  const loadExample = () => {
+    els.src.value =
+`// Example
+function hello(name){
+  console.log("Hello, " + name);
+}
+
+// Long string to test splitting:
+const s = "0123456789".repeat(2000);
+console.log(s.length);`;
+  };
+
+  const applyTheme = (t) => {
+    document.documentElement.setAttribute("data-theme", t);
+    els.btnTheme.textContent = (t === "light") ? "☀️" : "🌙";
+    try { localStorage.setItem("theme", t); } catch {}
+  };
+
+  const toggleTheme = () => {
+    const cur = document.documentElement.getAttribute("data-theme") || "dark";
+    applyTheme(cur === "dark" ? "light" : "dark");
+  };
+
+  els.src.addEventListener("input", () => { updateSrcInfo(); });
+
+  els.btnTheme.addEventListener("click", toggleTheme);
+
+  els.mode.addEventListener("change", () => { setModeUi(); });
+
+  els.btnSplit.addEventListener("click", splitNow);
+  els.btnSplitMobile.addEventListener("click", splitNow);
+
+  els.btnVerify.addEventListener("click", verifyNow);
+  els.btnVerifyMobile.addEventListener("click", verifyNow);
+
+  els.btnCopyAll.addEventListener("click", copyAllNow);
+  els.btnCopyAllMobile.addEventListener("click", copyAllNow);
+
+  els.btnClear.addEventListener("click", () => {
+    els.src.value = "";
+    lastText = "";
+    lastParts = [];
+    renderParts("", [], lastKind);
+    updateSrcInfo();
+    setStatus("Очищено.");
+  });
+
+  els.btnLoadExample.addEventListener("click", () => {
+    loadExample();
+    updateSrcInfo();
+    setStatus("Загружен пример.");
+  });
+
+  els.btnPaste.addEventListener("click", async () => {
+    try{
+      const t = await pasteText();
+      if (t) els.src.value = t;
+      await updateSrcInfo();
+      setStatus("Вставлено.");
+    }catch(err){
+      console.error(err);
+      setStatus("Не удалось вставить.");
+    }
+  });
+
+  els.btnLoadFile.addEventListener("click", () => els.fileInput.click());
+  els.fileInput.addEventListener("change", async () => {
+    const f = els.fileInput.files && els.fileInput.files[0];
+    if (!f) return;
+    try{
+      const text = await f.text();
+      els.src.value = text;
+      await updateSrcInfo();
+      setStatus(`Загружено из файла: ${f.name} (${text.length} chars).`);
+    }catch(err){
+      setStatus("Ошибка чтения файла.");
+      console.error(err);
+    }finally{
+      els.fileInput.value = "";
+    }
+  });
+
+  els.btnTogglePreview.addEventListener("click", () => {
+    const pres = els.parts.querySelectorAll("pre");
+    const anyOpen = Array.from(pres).some(p => !p.classList.contains("hidden"));
+    for (const p of pres) p.classList.toggle("hidden", anyOpen);
+    els.btnTogglePreview.textContent = anyOpen ? "Развернуть" : "Свернуть";
+  });
+
+  (() => {
+    let theme = "dark";
+    try { theme = localStorage.getItem("theme") || "dark"; } catch {}
+    applyTheme(theme);
+
+    setModeUi();
+    updateSrcInfo();
+    setStatus("Готово.");
+    updateActionButtons();
+  })();
+
+})();
+</script>
+</body>
+</html>
