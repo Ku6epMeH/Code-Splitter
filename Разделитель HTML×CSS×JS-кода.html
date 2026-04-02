@@ -360,6 +360,7 @@
         <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;">
           <span id="splitPill" class="pill">Частей: —</span>
           <span id="identityPill" class="pill">ID: —</span>
+          <span id="verifyPill" class="pill">Verify: —</span>
           <span id="perfPill" class="pill">Perf: —</span>
         </div>
       </div>
@@ -397,6 +398,7 @@
     shaPill: must("#shaPill"),
     splitPill: must("#splitPill"),
     identityPill: must("#identityPill"),
+    verifyPill: must("#verifyPill"),
     perfPill: must("#perfPill"),
     statusText: must("#statusText"),
     emptyState: must("#emptyState"),
@@ -436,6 +438,11 @@
     els.identityPill.classList.remove("good","bad","warn");
     if (kind) els.identityPill.classList.add(kind);
     els.identityPill.textContent = t;
+  };
+  const setVerify = (kind, t) => {
+    els.verifyPill.classList.remove("good","bad","warn");
+    if (kind) els.verifyPill.classList.add(kind);
+    els.verifyPill.textContent = t;
   };
 
   const canClipboardWrite = () => !!(navigator.clipboard && navigator.clipboard.writeText);
@@ -1233,6 +1240,7 @@
       lastParts = [];
       renderParts(lastText, lastParts, lastKind);
       setIdentity("warn", "ID: —");
+      setVerify(null, "Verify: —");
       setPerf("—");
       setStatus("Пустой текст.");
       return;
@@ -1267,18 +1275,21 @@
     setPerf(`${Math.round(t1 - t0)} мс`);
 
     setIdentity("good", `ID: ${lastKind.toUpperCase()}`);
+    setVerify(null, "Verify: —");
   };
 
   const verifyNow = async () => {
     if (!lastText || !lastParts.length) { setStatus("Нечего проверять."); return; }
     const res = verifyRebuild(lastText, lastParts);
 
-    els.identityPill.classList.remove("good","bad","warn");
+    els.verifyPill.classList.remove("good","bad","warn");
     if (res.ok) {
-      els.identityPill.classList.add("good");
+      els.verifyPill.classList.add("good");
+      setVerify("good", "Verify: OK");
       setStatus("Проверка: OK (восстановление совпадает).");
     } else {
-      els.identityPill.classList.add("bad");
+      els.verifyPill.classList.add("bad");
+      setVerify("bad", "Verify: Mismatch");
       setStatus("Проверка: НЕСОВПАДЕНИЕ (" + res.reason + ").");
     }
   };
