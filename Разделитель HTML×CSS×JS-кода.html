@@ -1,0 +1,2113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Code Splitter v1.0.1</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#111626; --panel2:#0f1422;
+    --text:#e8eefc; --muted:#a7b3d1;
+    --accent:#6aa6ff; --good:#32d583; --bad:#ff5c7a; --warn:#ffcc66;
+    --border:rgba(255,255,255,.10);
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, Sege UI, Roboto, Helvetica, Arial;
+    --mobilebar-pad:160px;
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f7fb; --panel:#ffffff; --panel2:#fbfcff;
+    --text:#0e1320; --muted:#4b5877;
+    --accent:#2563eb; --border:rgba(15,23,42,.12);
+    --shadow: 0 10px 30px rgba(2,6,23,.12);
+  }
+  *{box-sizing:border-box}
+  body{ margin:0; font-family:var(--sans); background:var(--bg); color:var(--text); }
+  header{
+    position:sticky; top:0; z-index:20;
+    background:linear-gradient(to bottom, rgba(0,0,0,.25), transparent);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .wrap{ max-width:1200px; margin:0 auto; padding:16px 16px 0; }
+  .top{ display:flex; gap:12px; align-items:center; justify-content:space-between; padding-bottom:12px; }
+  .title{ display:flex; flex-direction:column; gap:2px; }
+  h1{ font-size:16px; margin:0; font-weight:700; letter-spacing:.2px; }
+  .subtitle{ font-size:12px; color:var(--muted); }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button, select, input{ font:inherit; }
+  button{
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    box-shadow: 0 1px 0 rgba(255,255,255,.04) inset;
+  }
+  button:hover{ border-color:rgba(255,255,255,.20); }
+  button:disabled{ opacity:.55; cursor:not-allowed; }
+  .btnPrimary{
+    background:linear-gradient(180deg, rgba(106,166,255,.20), rgba(106,166,255,.06));
+    border-color:rgba(106,166,255,.35);
+  }
+  .btnDanger{
+    background:linear-gradient(180deg, rgba(255,92,122,.18), rgba(255,92,122,.05));
+    border-color:rgba(255,92,122,.35);
+  }
+  .btnCancel{
+    background:linear-gradient(180deg, rgba(255,92,122,.28), rgba(255,92,122,.09));
+    border-color:rgba(255,92,122,.45);
+    color:var(--text);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap:14px;
+    padding: 14px 16px 120px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  @media (max-width: 960px){
+    .grid{ grid-template-columns: 1fr; padding-bottom: var(--mobilebar-pad); }
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .cardHeader{
+    padding:12px 12px 10px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .cardHeader .h{ display:flex; flex-direction:column; gap:6px; }
+  .cardHeader .h .small{ color:var(--muted); font-size:12px; }
+  .pills{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .pill{
+    font-size:12px;
+    color:var(--muted);
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--panel2);
+  }
+  .pill.good{ border-color: rgba(50,213,131,.45); color: var(--good); }
+  .pill.bad{ border-color: rgba(255,92,122,.45); color: var(--bad); }
+  .pill.warn{ border-color: rgba(255,204,102,.45); color: var(--warn); }
+
+  textarea{
+    width:100%;
+    min-height: 360px;
+    resize: vertical;
+    border:0;
+    outline:0;
+    padding:12px;
+    background:transparent;
+    color:var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .controlsGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+    padding:12px;
+  }
+  .cell{
+    border:1px solid var(--border);
+    background:var(--panel2);
+    border-radius:12px;
+    padding:10px;
+  }
+  .cell label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .cell input, .cell select{
+    width:100%;
+    padding:10px 10px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text);
+    outline:none;
+  }
+  .cell input:focus, .cell select:focus{
+    border-color: rgba(106,166,255,.55);
+    box-shadow: 0 0 0 3px rgba(106,166,255,.18);
+  }
+
+  .hidden{ display:none !important; }
+
+  .actions{
+    padding: 0 12px 12px;
+    display:flex; gap:10px; flex-wrap:wrap;
+    align-items:flex-start;
+  }
+
+.status{
+  font-size:13px;
+  color:var(--text);
+  padding:12px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.06);
+  text-align:left;
+  line-height:1.4;
+  background: linear-gradient(90deg, rgba(15,23,42,0.72), rgba(17,25,45,0.88));
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.02) inset;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  width: 100%;
+  box-sizing: border-box;
+  display:block;
+  -webkit-line-clamp: none;
+  overflow: visible;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Мобильная версия: фиксированная ширина 413px */
+@media (max-width: 720px) {
+  .status{
+    flex: 0 0 413px;
+    width: 413px;
+    min-width: 413px;
+    max-width: 413px;
+    min-height: calc(1.4em * 2 + 28px);
+  }
+
+  .status, .status * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+  .status.good{
+    background: linear-gradient(90deg, rgba(34,197,94,0.08), rgba(16,185,129,0.06));
+    border-color: rgba(50,213,131,0.20);
+    color: var(--good);
+    box-shadow: 0 6px 18px rgba(50,213,131,0.06);
+  }
+  .status.bad{
+    background: linear-gradient(90deg, rgba(255,99,132,0.08), rgba(255,92,122,0.06));
+    border-color: rgba(255,92,122,0.20);
+    color: var(--bad);
+    box-shadow: 0 6px 18px rgba(255,92,122,0.06);
+  }
+  .status.warn{
+    background: linear-gradient(90deg, rgba(255,204,102,0.08), rgba(255,204,102,0.04));
+    border-color: rgba(255,204,102,0.20);
+    color: var(--warn);
+    box-shadow: 0 6px 18px rgba(255,204,102,0.06);
+  }
+
+  @media (min-width: 721px) {
+  .status{
+    order: 999;
+    flex: 0 0 638px;
+    width: 638px;
+    min-width: 638px;
+    max-width: 638px;
+    min-height: calc(1.4em * 2 + 28px);
+  }
+
+  .status, .status * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Ограничить типичные селекторы прогресс-бара, чтобы он не тянул .status */
+  .status .progress,
+  .status .progress-bar,
+  .status .progress-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
+  .partsWrap{ padding: 10px 12px 14px; }
+  .partsTop{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding: 10px 12px;
+    border-bottom:1px solid var(--border);
+  }
+  .partsTop .info{ font-size:12px; color:var(--muted); }
+  .parts{
+    display:flex; flex-direction:column; gap:10px;
+    padding: 12px;
+  }
+  .empty{
+    padding: 18px 12px;
+    color: var(--muted);
+    border:1px dashed var(--border);
+    border-radius:12px;
+    background:var(--panel2);
+  }
+  .part{
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--panel2);
+    overflow:hidden;
+  }
+  .ph{
+    padding:10px 10px;
+    display:flex; gap:10px; justify-content:space-between; align-items:center;
+    cursor:pointer;
+  }
+  .ph:focus{ outline: 2px solid rgba(106,166,255,.5); outline-offset: -2px; }
+  .meta{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:12px; color:var(--muted); }
+  .badge{
+    font-size:11px;
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    color:var(--muted);
+  }
+  .badge.kind{ border-color: rgba(106,166,255,.35); color: var(--accent); }
+  .badge.forced{ border-color: rgba(255,204,102,.45); color: var(--warn); }
+  .controls{ display:flex; gap:8px; }
+  .controls button{ padding:7px 10px; border-radius:10px; font-size:12px; }
+
+  pre{
+    margin:0;
+    padding: 12px;
+    background: #0b1020;
+    color: #e8eefc;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.45;
+    overflow:auto;
+    max-height: 360px;
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  .preWrap{
+    position: relative;
+    border-top:1px solid var(--border);
+    background: #0b1020;
+  }
+
+  .dlInPre{
+    position:absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    padding:7px 10px;
+    border-radius:10px;
+    font-size:12px;
+    transition: opacity .15s ease;
+  }
+  .dlInPre.isHidden{
+    opacity:0;
+    pointer-events:none;
+  }
+
+  :root[data-theme="light"] pre{ background: #0b1020; color: #e8eefc; }
+  :root[data-theme="light"] .preWrap{ background:#0b1020; }
+
+  .mobileBar{
+    position:fixed; left:0; right:0; bottom:0;
+    z-index:30;
+    border-top:1px solid var(--border);
+    background: rgba(17,22,38,.78);
+    backdrop-filter: blur(10px);
+    padding:10px;
+    display:none;
+  }
+  :root[data-theme="light"] .mobileBar{ background: rgba(255,255,255,.78); }
+  .mobileBar .inner{
+    max-width:1200px;
+    margin:0 auto;
+    display:flex; gap:10px;
+    flex-wrap:wrap;
+  }
+  .mobileBar button{ flex:1; min-width: 160px; }
+  @media (max-width: 720px){
+    .mobileBar{ display:block; }
+    .actions.actionsMain{ display:none; }
+  }
+  .fileInput{ display:none; }
+
+  .statusProgressWrap{ background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:6px; max-width:820px; margin-top:8px; }
+  .statusProgressTrack{ height:8px; background: rgba(255,255,255,0.04); border-radius:6px; overflow:hidden; }
+  .statusProgress{ height:100%; width:0%; background: linear-gradient(90deg,var(--accent), #7fc2ff); transition: width 240ms ease; }
+  .statusProgressLabel{ margin-top:6px; font-size:12px; color:var(--muted); text-align:right; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="title">
+        <h1 id="appTitle">Code Splitter v1.0.1</h1>
+        <div class="subtitle">Разделитель кода HTML/CSS/JS</div>
+      </div>
+      <div class="row">
+        <button id="btnTheme" type="button" aria-label="Переключить тему"></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="grid">
+  <section class="card">
+    <div class="cardHeader">
+      <div class="h">
+        <div><strong>Исходник</strong></div>
+        <div class="small"><span id="srcInfo">Символов: 0</span></div>
+      </div>
+      <div class="pills">
+        <span id="eolPill" class="pill">EOL: —</span>
+        <span id="utf8Pill" class="pill">UTF‑8: —</span>
+        <span id="shaPill" class="pill">SHA‑256: —</span>
+      </div>
+    </div>
+
+    <textarea id="src" spellcheck="false" placeholder="Вставьте код сюда..." title="Перетащите файл сюда или вставьте текст"></textarea>
+
+    <div class="actions">
+      <input id="fileInput" class="fileInput" type="file" />
+      <button id="btnLoadFile" type="button">Файл…</button>
+      <button id="btnPaste" type="button">Вставить</button>
+      <button id="btnLoadExample" type="button">Пример</button>
+      <button id="btnClear" type="button" class="btnDanger">Очистить</button>
+      <div>
+        <div id="statusText" class="status" role="status" aria-live="polite"></div>
+        <div id="statusProgressWrap" class="statusProgressWrap" aria-hidden="true" style="display:none;">
+          <div class="statusProgressTrack"><div id="statusProgress" class="statusProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></div>
+          <div id="statusProgressLabel" class="statusProgressLabel" aria-hidden="true">Прогресс: 0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controlsGrid">
+      <div class="cell">
+        <label>Режим</label>
+        <select id="mode" title="chars — разделить по символам, parts — по количеству частей">
+          <option value="chars">По символам</option>
+          <option value="parts">По частям</option>
+        </select>
+      </div>
+
+      <div class="cell" id="cellCharsPerPart">
+        <label>Символов на часть</label>
+        <input id="charsPerPart" type="number" value="15000" min="1" />
+      </div>
+
+      <div class="cell hidden" id="cellPartsCount">
+        <label>Количество частей</label>
+        <input id="partsCount" type="number" value="5" min="1" />
+      </div>
+
+      <div class="cell">
+        <label>Hard limit (0 = выкл.)</label>
+        <input id="hardLimit" type="number" value="0" min="0" />
+      </div>
+
+      <div class="cell">
+        <label>Overlap (0 = выкл.)</label>
+        <input id="overlap" type="number" value="0" min="0" />
+      </div>
+    </div>
+
+    <div class="actions actionsMain">
+      <button id="btnSplit" class="btnPrimary" type="button" aria-pressed="false">Разделить</button>
+      <button id="btnVerify" type="button">Проверить</button>
+      <button id="btnCopyAll" type="button">Копировать всё</button>
+      <button id="btnDownloadAll" type="button">Скачать всё</button>
+    </div>
+  </section>
+
+  <aside class="card">
+    <div class="partsTop">
+      <div class="info">
+        <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;">
+          <span id="splitPill" class="pill">Частей: —</span>
+          <span id="identityPill" class="pill">ID: —</span>
+          <span id="verifyPill" class="pill">Verify: —</span>
+          <span id="perfPill" class="pill">Perf: —</span>
+        </div>
+      </div>
+      <div><button id="btnTogglePreview" type="button">Развернуть</button></div>
+    </div>
+
+    <div class="partsWrap">
+      <div id="parts" class="parts">
+        <div id="emptyState" class="empty">Пока частей нет. Нажмите «Разделить».</div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div id="mobileBar" class="mobileBar" role="navigation" aria-label="Основные действия">
+  <div class="inner">
+    <button id="btnSplitMobile" class="btnPrimary" type="button">Разделить</button>
+    <button id="btnVerifyMobile" type="button">Проверить</button>
+    <button id="btnCopyAllMobile" type="button">Копировать всё</button>
+    <button id="btnDownloadAllMobile" type="button">Скачать всё</button>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+  const q = (s) => document.querySelector(s);
+  const must = (s) => { const el = q(s); if (!el) throw new Error("Нет элементa: " + s); return el; };
+
+  const els = {
+    src: must("#src"),
+    srcInfo: must("#srcInfo"),
+    eolPill: must("#eolPill"),
+    utf8Pill: must("#utf8Pill"),
+    shaPill: must("#shaPill"),
+    splitPill: must("#splitPill"),
+    identityPill: must("#identityPill"),
+    verifyPill: must("#verifyPill"),
+    perfPill: must("#perfPill"),
+    statusText: must("#statusText"),
+    statusProgressWrap: must("#statusProgressWrap"),
+    statusProgress: must("#statusProgress"),
+    statusProgressLabel: must("#statusProgressLabel"),
+    emptyState: must("#emptyState"),
+
+    btnTheme: must("#btnTheme"),
+
+    fileInput: must("#fileInput"),
+    btnLoadFile: must("#btnLoadFile"),
+    btnPaste: must("#btnPaste"),
+    btnLoadExample: must("#btnLoadExample"),
+    btnClear: must("#btnClear"),
+
+    mode: must("#mode"),
+    charsPerPart: must("#charsPerPart"),
+    partsCount: must("#partsCount"),
+    cellCharsPerPart: must("#cellCharsPerPart"),
+    cellPartsCount: must("#cellPartsCount"),
+
+    hardLimit: must("#hardLimit"),
+    overlap: must("#overlap"),
+
+    btnTogglePreview: must("#btnTogglePreview"),
+
+    btnSplit: must("#btnSplit"),
+    btnSplitMobile: must("#btnSplitMobile"),
+    btnVerify: must("#btnVerify"),
+    btnVerifyMobile: must("#btnVerifyMobile"),
+    btnCopyAll: must("#btnCopyAll"),
+    btnCopyAllMobile: must("#btnCopyAllMobile"),
+    btnDownloadAll: must("#btnDownloadAll"),
+    btnDownloadAllMobile: must("#btnDownloadAllMobile"),
+
+    parts: must("#parts"),
+    appTitle: must("#appTitle"),
+  };
+
+  const DEBUG = false;
+  const LS_KEY = "code_splitter_settings_v1";
+  const MAX_PROCESS_BYTES = 10 * 1024 * 1024;
+  const MAX_COPY_BYTES = 2_500_000;
+  const MAX_AUTO_SAVE_BYTES = 200_000;
+  const DEFAULT_CHARS_PER_PART = 15000;
+  const MAX_PARTS = 2000;
+  const APP_VERSION = "1.0.1";
+
+  const YIELD_THRESHOLD_CHARS = 100_000;
+  const YIELD_INTERVAL_MS = 12;
+
+  const log = (...args) => { if (DEBUG) console.log(...args); };
+
+  const loadSettings = () => {
+    try{ const raw = localStorage.getItem(LS_KEY); if (!raw) return null; return JSON.parse(raw); } catch { return null; }
+  };
+  const saveSettings = (s) => { try{ localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch {} };
+  const readSettingsFromUI = () => ({
+    mode: els.mode.value,
+    charsPerPart: String(els.charsPerPart.value || ""),
+    partsCount: String(els.partsCount.value || ""),
+    hardLimit: String(els.hardLimit.value || ""),
+    overlap: String(els.overlap.value || ""),
+  });
+  const applySettingsToUI = (s) => {
+    if (!s) return;
+    if (s.mode) els.mode.value = s.mode;
+    if (s.charsPerPart != null) els.charsPerPart.value = s.charsPerPart;
+    if (s.partsCount != null) els.partsCount.value = s.partsCount;
+    if (s.hardLimit != null) els.hardLimit.value = s.hardLimit;
+    if (s.overlap != null) els.overlap.value = s.overlap;
+  };
+
+  const setProgressBar = (pct) => {
+    if (typeof pct !== "number" || Number.isNaN(pct)) {
+      els.statusProgressWrap.style.display = "none";
+      els.statusProgress.style.width = "0%";
+      els.statusProgress.setAttribute("aria-valuenow", "0");
+      els.statusProgressLabel.textContent = "";
+      els.statusProgressWrap.setAttribute("aria-hidden", "true");
+      return;
+    }
+    const p = Math.max(0, Math.min(100, Math.round(pct)));
+    els.statusProgressWrap.style.display = "block";
+    els.statusProgress.style.width = p + "%";
+    els.statusProgress.setAttribute("aria-valuenow", String(p));
+    els.statusProgressLabel.textContent = `Прогресс: ${p}%`;
+    els.statusProgressWrap.setAttribute("aria-hidden", "false");
+  };
+
+  const setStatus = (obj, kind = null) => {
+    let s = null;
+    if (typeof obj === "string") {
+      s = { code: "info", text: obj, kind: kind || null };
+    } else if (obj && typeof obj === "object") {
+      s = { code: obj.code || "info", text: obj.text || "", kind: obj.kind || kind || null, progress: obj.progress };
+    } else {
+      s = { code: "info", text: "", kind: kind || null };
+    }
+
+    els.statusText.classList.remove("good","bad","warn");
+    if (s.kind === "good") els.statusText.classList.add("good");
+    else if (s.kind === "bad") els.statusText.classList.add("bad");
+    else if (s.kind === "warn") els.statusText.classList.add("warn");
+
+    els.statusText.textContent = String(s.text || "");
+    if (typeof s.progress === "number") setProgressBar(s.progress);
+    else setProgressBar(null);
+  };
+
+  const setPerf = (t) => els.perfPill.textContent = "Perf: " + String(t||"—");
+  const setIdentity = (kind, t) => {
+    els.identityPill.classList.remove("good","bad","warn");
+    if (kind) els.identityPill.classList.add(kind);
+    els.identityPill.textContent = t;
+  };
+  const setVerify = (kind, t) => {
+    els.verifyPill.classList.remove("good","bad","warn");
+    if (kind) els.verifyPill.classList.add(kind);
+    els.verifyPill.textContent = t;
+  };
+
+  const debounce = (fn, waitMs) => {
+    let t = null;
+    return (...args) => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => fn(...args), waitMs);
+    };
+  };
+
+  window.addEventListener("error", (e) => {
+    log("window.error", e.error || e.message);
+    setStatus({ code: "error_unhandled", text: "Произошла непредвиденная ошибка. Смотрите консоль (debug).", kind: "bad" });
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    log("unhandledrejection", e.reason);
+    setStatus({ code: "error_promise", text: "Произошла ошибка в промисе. Смотрите консоль (debug).", kind: "bad" });
+  });
+
+  const safeRun = async (fn, failMsg = "Ошибка") => {
+    try {
+      return await fn();
+    } catch (err) {
+      log("safeRun error:", err);
+      setStatus({ code: "error", text: failMsg + ": " + (err && err.message ? err.message : String(err)), kind: "bad" });
+      return undefined;
+    }
+  };
+
+  const withLock = (fn) => {
+    let busy = false;
+    return async (...args) => {
+      if (busy) return;
+      busy = true;
+      try {
+        for (const b of [els.btnSplit, els.btnSplitMobile, els.btnCopyAll, els.btnCopyAllMobile, els.btnDownloadAll, els.btnDownloadAllMobile, els.btnVerify, els.btnVerifyMobile]) {
+          if (b) b.disabled = true;
+        }
+        await fn(...args);
+      } finally {
+        busy = false;
+        updateActionButtons();
+      }
+    };
+  };
+
+  let globalAbortController = null;
+  let currentOperationName = null;
+  const isOperationActive = () => !!globalAbortController && !!currentOperationName && !globalAbortController.signal.aborted;
+
+  const beginOperation = (name) => {
+    if (globalAbortController) {
+      try { globalAbortController.abort(); } catch (e) {}
+    }
+    globalAbortController = new AbortController();
+    currentOperationName = name;
+    updateSplitButtonState();
+    return globalAbortController;
+  };
+  const endOperation = () => {
+    currentOperationName = null;
+    if (globalAbortController) {
+      try { globalAbortController.abort(); } catch (e){}
+      globalAbortController = null;
+    }
+    updateSplitButtonState();
+  };
+
+  const canClipboardWrite = () => !!(navigator.clipboard && navigator.clipboard.writeText);
+  const canClipboardRead  = () => !!(navigator.clipboard && navigator.clipboard.readText);
+
+  const fallbackCopy = async (text) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try{
+      const ok = document.execCommand("copy");
+      if (!ok) throw new Error("execCommand(copy) failed");
+    } finally {
+      ta.remove();
+    }
+  };
+
+  const copyText = async (text, signal) => {
+    if (signal && signal.aborted) throw new Error("aborted");
+    text = String(text ?? "");
+    if (!text) return;
+    try{
+      if (canClipboardWrite()) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        await fallbackCopy(text);
+      }
+    } catch {
+      await fallbackCopy(text);
+    }
+  };
+
+  const pasteText = async () => {
+    if (canClipboardRead()) return await navigator.clipboard.readText();
+    return prompt("Вставьте текст сюда (Ctrl+V):", "") || "";
+  };
+
+  const clampInt = (v, def, min, max) => {
+    const x = Number.parseInt(String(v ?? ""), 10);
+    if (!Number.isFinite(x)) return def;
+    return Math.min(max, Math.max(min, x));
+  };
+
+  const detectEOL = (text) => {
+    text = String(text || "");
+    const crlf = (text.match(/\r\n/g) || []).length;
+    const allLf = (text.match(/\n/g) || []).length;
+    const lf = allLf - crlf;
+    const cr = (text.match(/\r(?!\n)/g) || []).length;
+    if (!text) return "—";
+    if (crlf && !lf && !cr) return "CRLF";
+    if (lf && !crlf && !cr) return "LF";
+    if (cr && !crlf && !lf) return "CR";
+    return `mixed (CRLF:${crlf} LF:${lf} CR:${cr})`;
+  };
+
+  const utf8ByteLengthFast = (text) => {
+    text = String(text||"");
+    if (!text) return 0;
+    if (typeof TextEncoder !== "undefined") {
+      return new TextEncoder().encode(text).length;
+    }
+    let bytes = 0;
+    for (let i = 0; i < text.length; i++) {
+      const c = text.charCodeAt(i);
+      if (c <= 0x7f) bytes++;
+      else if (c <= 0x7ff) bytes += 2;
+      else if (c >= 0xd800 && c <= 0xdbff) {
+        const next = text.charCodeAt(i+1);
+        if (i + 1 < text.length && next >= 0xdc00 && next <= 0xdfff) { bytes += 4; i++; }
+        else bytes += 3;
+      } else bytes += 3;
+    }
+    return bytes;
+  };
+
+  const utf8ByteLengthRange = (str, start, end) => {
+    str = String(str || "");
+    start = Math.max(0, start|0);
+    end = Math.min(str.length, end|0);
+    let bytes = 0;
+    for (let i = start; i < end; i++) {
+      const c = str.charCodeAt(i);
+      if (c <= 0x7f) bytes++;
+      else if (c <= 0x7ff) bytes += 2;
+      else if (c >= 0xd800 && c <= 0xdbff) {
+        const next = str.charCodeAt(i+1);
+        if (i + 1 < end && next >= 0xdc00 && next <= 0xdfff) { bytes += 4; i++; }
+        else bytes += 3;
+      } else bytes += 3;
+    }
+    return bytes;
+  };
+
+  const CODE_KIND = { JS: "js", CSS: "css", HTML: "html", JSON: "json", MD: "md", TEXT: "text" };
+
+  const detectKind = (text) => {
+    text = String(text||"");
+    const s = text.trimStart();
+    if (s.startsWith("<!doctype") || s.startsWith("<html") || s.startsWith("<")) return CODE_KIND.HTML;
+    if (s.startsWith("{") || s.startsWith("[")) return CODE_KIND.JSON;
+    if (s.startsWith("# ") || s.startsWith("## ") || s.startsWith("```")) return CODE_KIND.MD;
+    if (s.includes("{") && s.includes("}") && s.includes(":") && s.includes(";") && !s.includes("function")) return CODE_KIND.CSS;
+    return CODE_KIND.JS;
+  };
+
+  const kindToMime = (kind) => {
+    switch (kind) {
+      case CODE_KIND.JSON: return "application/json;charset=utf-8";
+      case CODE_KIND.HTML: return "text/html;charset=utf-8";
+      case CODE_KIND.CSS:  return "text/css;charset=utf-8";
+      case CODE_KIND.JS:   return "text/javascript;charset=utf-8";
+      case CODE_KIND.MD:   return "text/markdown;charset=utf-8";
+      default:             return "text/plain;charset=utf-8";
+    }
+  };
+
+  const kindToExt = (kind) => {
+    switch (kind) {
+      case CODE_KIND.JS: return "js";
+      case CODE_KIND.CSS: return "css";
+      case CODE_KIND.HTML: return "html";
+      case CODE_KIND.JSON: return "json";
+      case CODE_KIND.MD: return "md";
+      default: return "txt";
+    }
+  };
+
+  // -------------------- Split helpers (improved) --------------------
+  const isWordChar = (ch) => {
+    if (!ch) return false;
+    try { return /\p{L}|\p{N}|_/u.test(ch); } catch (e) { return /[0-9A-Za-z_]/.test(ch); }
+  };
+
+  const isUnsafeCutToken = (text, pos) => {
+    const a = text[pos - 1] || "";
+    const b = text[pos] || "";
+    const ca = a ? a.charCodeAt(0) : 0;
+    const cb = b ? b.charCodeAt(0) : 0;
+    if (ca >= 0xD800 && ca <= 0xDBFF && cb >= 0xDC00 && cb <= 0xDFFF) return true;
+    // Don't cut right after escape
+    if (a === "\\") return true;
+    // Don't cut in the middle of typical operator sequences
+    if ((a === ":" && b === ":") || (a === "-" && b === ">") || (a === "<" && b === "=")) return true;
+    return false;
+  };
+
+  const findHtmlInnerBlocks = (text) => {
+    const blocks = [];
+    const reOpen = /<(script|style)(\s[^>]*)?>/ig;
+    let m;
+    while ((m = reOpen.exec(text)) !== null) {
+      const tag = m[1].toLowerCase();
+      const startTagEnd = reOpen.lastIndex;
+      const closeRe = new RegExp(`<\\/${tag}>`, "ig");
+      closeRe.lastIndex = startTagEnd;
+      const cl = closeRe.exec(text);
+      const end = cl ? cl.index : text.length;
+      blocks.push({ start: startTagEnd, end, innerKind: tag === "script" ? CODE_KIND.JS : CODE_KIND.CSS });
+      reOpen.lastIndex = end;
+    }
+    return blocks;
+  };
+
+  const getUnsafeMaskForKind = (text, kind) => {
+    text = String(text||"");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    const mask = new Uint8Array(len+1);
+    const innerBlocks = [];
+
+    if (len === 0) return { mask, innerBlocks };
+
+    if (kind === CODE_KIND.HTML) {
+      const blocks = findHtmlInnerBlocks(text);
+      for (const b of blocks) innerBlocks.push(b);
+
+      let inTag = false;
+      let quote = null;
+      for (let i = 0; i < len; i++) {
+        const inInner = innerBlocks.some(b => i >= b.start && i < b.end);
+        if (inInner) continue;
+        const ch = text[i];
+        if (!inTag) {
+          if (ch === "<") { inTag = true; mask[i] = 1; mask[i+1] = 1; }
+        } else {
+          mask[i] = 1; mask[i+1] = 1;
+          if (quote) {
+            if (ch === quote && text[i-1] !== "\\") quote = null;
+          } else {
+            if (ch === '"' || ch === "'") quote = ch;
+            else if (ch === ">") inTag = false;
+          }
+        }
+      }
+      return { mask, innerBlocks };
+    }
+
+    if (kind === CODE_KIND.JS || kind === CODE_KIND.JSON) {
+      let inStr = null, inTemplate = false, inLineComment = false, inBlockComment = false, inRegex = false;
+      for (let i = 0; i < len; i++) {
+        const ch = text[i];
+        const next = text[i+1];
+
+        if (inLineComment) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "\n") inLineComment = false;
+          continue;
+        }
+        if (inBlockComment) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "*" && next === "/") { inBlockComment = false; i++; }
+          continue;
+        }
+        if (inStr) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "\\" ) { i++; continue; }
+          if (ch === inStr) inStr = null;
+          continue;
+        }
+        if (inTemplate) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "\\" ) { i++; continue; }
+          if (ch === "`") inTemplate = false;
+          continue;
+        }
+        if (inRegex) {
+          mask[i] = 1; mask[i+1] = 1;
+          if (ch === "\\" ) { i++; continue; }
+          if (ch === "/") inRegex = false;
+          continue;
+        }
+
+        if (ch === "/" && next === "/") { inLineComment = true; mask[i] = 1; mask[i+1] = 1; i++; continue; }
+        if (ch === "/" && next === "*") { inBlockComment = true; mask[i] = 1; mask[i+1] = 1; i++; continue; }
+        if (ch === "'" || ch === '"') { inStr = ch; mask[i] = 1; mask[i+1] = 1; continue; }
+        if (ch === "`") { inTemplate = true; mask[i] = 1; mask[i+1] = 1; continue; }
+
+        if (ch === "/" && next && next !== "/" && next !== "*") {
+          let j = i-1;
+          while (j >= 0 && /\s/.test(text[j])) j--;
+          const prev = j >= 0 ? text[j] : "";
+          if (!prev || /[({[=,:;!&|?+\-~*%^<>]/.test(prev)) {
+            inRegex = true; mask[i] = 1; mask[i+1] = 1; continue;
+          }
+        }
+      }
+      return { mask, innerBlocks: [] };
+    }
+
+    return { mask, innerBlocks: [] };
+  };
+
+  const makeIsOkCut = (text, maskObj) => {
+    const len = text.length;
+    const mask = (maskObj && maskObj.mask) ? maskObj.mask : new Uint8Array(len+1);
+    const innerBlocks = (maskObj && maskObj.innerBlocks) ? maskObj.innerBlocks : [];
+    const innerMasks = new Map();
+
+    const findInner = (pos) => {
+      for (const b of innerBlocks) if (pos > b.start && pos < b.end) return b;
+      return null;
+    };
+
+    return (pos) => {
+      if (pos <= 0 || pos >= len) return true;
+      const b = findInner(pos);
+      if (b) {
+        if (!innerMasks.has(b)) {
+          const sub = text.slice(b.start, b.end);
+          const innerMaskObj = getUnsafeMaskForKind(sub, b.innerKind);
+          innerMasks.set(b, { mask: innerMaskObj.mask, offset: b.start });
+        }
+        const im = innerMasks.get(b);
+        const idx = pos - im.offset;
+        if (im.mask && im.mask[idx]) return false;
+        if (isUnsafeCutToken(text, pos)) return false;
+        if (isWordChar(text[pos-1]) && isWordChar(text[pos])) return false;
+        return true;
+      }
+      if (mask && mask[pos]) return false;
+      if (isUnsafeCutToken(text, pos)) return false;
+      if (isWordChar(text[pos-1]) && isWordChar(text[pos])) return false;
+      return true;
+    };
+  };
+
+  const partsFromCuts = (cuts, overlap) => {
+    overlap = Math.max(0, overlap|0);
+    const res = [];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const start = cuts[i];
+      const end = cuts[i+1];
+      if (end <= start) continue;
+      const realStart = (i === 0) ? start : Math.max(0, start - overlap);
+      res.push({ start: realStart, end, forced: false });
+    }
+    if (res.length) res[0].start = 0;
+    return res;
+  };
+
+  // Improved merging / rebalancing
+  const mergeSmallParts = (parts, len, target = 0, innerBlocks = []) => {
+    if (!Array.isArray(parts) || parts.length < 2) return parts || [];
+    const res = parts.map(p => ({ ...p }));
+    const avg = target || Math.round(len / Math.max(1, res.length));
+    const minAbs = 20;
+    const rel = 0.12; // slightly larger threshold
+    const minPart = Math.max(minAbs, Math.round(avg * rel));
+
+    const crossesLanguageBoundary = (aPos, bPos) => {
+      for (const b of innerBlocks) {
+        if (aPos < b.start && b.start < bPos) return true;
+        if (aPos < b.end && b.end < bPos) return true;
+      }
+      return false;
+    };
+
+    // First pass: merge tiny parts into neighbours preferring balancing
+    for (let i = 0; i < res.length; ) {
+      const cur = res[i];
+      const curLen = cur.end - cur.start;
+      if (curLen >= minPart) { i++; continue; }
+      if (i === 0) {
+        if (res.length > 1 && !crossesLanguageBoundary(cur.start, res[1].end)) {
+          res[1].start = cur.start;
+          res.splice(0,1);
+          continue;
+        } else { i++; continue; }
+      }
+      // merge into best neighbor (left or right)
+      const left = res[i-1];
+      const right = res[i+1];
+      if (!right) {
+        left.end = cur.end;
+        res.splice(i,1);
+        continue;
+      }
+      const leftLen = (left.end - left.start);
+      const rightLen = (right.end - right.start);
+      if (!crossesLanguageBoundary(left.start, cur.end) && (leftLen <= rightLen || crossesLanguageBoundary(cur.start, right.end))) {
+        left.end = cur.end;
+        res.splice(i,1);
+      } else if (!crossesLanguageBoundary(cur.start, right.end)) {
+        right.start = cur.start;
+        res.splice(i,1);
+      } else {
+        // cannot merge due to boundary, keep
+        i++;
+      }
+    }
+
+    // Final pass: ensure start/end invariants
+    if (res.length) {
+      res[0].start = 0;
+      res[res.length-1].end = len;
+    }
+    return res;
+  };
+
+  const bestCutInRangeScored = (text, leftBound, rightBound, kind, isOkCut, maskObj, signal) => {
+    const len = text.length;
+    if (signal && signal.aborted) throw new Error("aborted");
+    if (leftBound > rightBound) return -1;
+    leftBound = Math.max(1, leftBound|0);
+    rightBound = Math.min(len-1, rightBound|0);
+
+    const scoreAt = (pos, localKind) => {
+      const prev = text[pos - 1] || "";
+      const prev2 = text[pos - 2] || "";
+      if (isWordChar(prev) && isWordChar(text[pos])) return -1e9;
+      let s = 0;
+      if (prev === "\n") { s += 100000; if (prev2 === "\n") s += 8000; return s + (pos - leftBound); }
+      if (prev === ";") s += 50000;
+      else if (prev === ",") s += (localKind === CODE_KIND.JSON ? 52000 : 42000);
+      else if (prev === "}") s += 46000;
+      else if (prev === ")") s += 22000;
+      else if (prev === "]") s += 22000;
+      else if (prev === ">") s += (localKind === CODE_KIND.HTML ? 35000 : 8000);
+      s += (pos - leftBound);
+      return s;
+    };
+
+    let bestPos = -1;
+    let bestScore = -1e18;
+
+    const findInnerKindAt = (pos) => {
+      if (!maskObj || !maskObj.innerBlocks) return null;
+      for (const b of maskObj.innerBlocks) if (pos > b.start && pos < b.end) return b.innerKind;
+      return null;
+    };
+
+    for (let pos = rightBound; pos >= leftBound; pos--) {
+      if (signal && signal.aborted) throw new Error("aborted");
+      if (!isOkCut(pos)) continue;
+      const prev = text[pos - 1] || "";
+      const next = text[pos] || "";
+      if (isWordChar(prev) && isWordChar(next)) continue;
+      const goodPrev = prev === "\n" || prev === " " || prev === "\t" || prev === ";" || prev === "," || prev === "}" || prev === ")" || prev === "]" || prev === ">";
+      if (!goodPrev) continue;
+      const localKind = findInnerKindAt(pos) || kind;
+      const sc = scoreAt(pos, localKind);
+      if (sc > bestScore) { bestScore = sc; bestPos = pos; }
+    }
+    return bestPos;
+  };
+
+  const yieldIfNeeded = (() => {
+    let lastYieldTime = 0;
+    return async (signal, textLen) => {
+      if (signal && signal.aborted) throw new Error("aborted");
+      if (!textLen || textLen < YIELD_THRESHOLD_CHARS) return;
+      const now = performance.now();
+      if (now - lastYieldTime > YIELD_INTERVAL_MS) {
+        lastYieldTime = now;
+        await new Promise((r) => setTimeout(r, 0));
+        if (signal && signal.aborted) throw new Error("aborted");
+      }
+    };
+  })();
+
+  const splitByCharsPremiumNoTail = async (text, softLimit, overlap, kind, signal) => {
+    text = String(text || "");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    if (signal && signal.aborted) throw new Error("aborted");
+    if (!len) return [];
+    softLimit = Math.max(1, softLimit | 0);
+    overlap = Math.max(0, overlap | 0);
+
+    const maskObj = getUnsafeMaskForKind(text, kind);
+    const isOkCut = makeIsOkCut(text, maskObj);
+
+    const fixSurrogateCut = (pos) => {
+      if (pos <= 0 || pos >= len) return pos;
+      const a = text.charCodeAt(pos - 1);
+      const b = text.charCodeAt(pos);
+      if (a >= 0xD800 && a <= 0xDBFF && b >= 0xDC00 && b <= 0xDFFF) return pos - 1;
+      return pos;
+    };
+
+    const parts = [];
+    let start = 0;
+
+    while (start < len) {
+      if (signal && signal.aborted) throw new Error("aborted");
+      await yieldIfNeeded(signal, len);
+
+      const remaining = len - start;
+      if (remaining <= Math.max(1, Math.floor(softLimit * 0.5))) {
+        parts.push({ start, end: len, forced: false });
+        break;
+      }
+
+      const targetEnd = Math.min(len, start + softLimit);
+      if (targetEnd >= len) {
+        parts.push({ start, end: len, forced: false });
+        break;
+      }
+
+      const left = start + 1;
+      const right = targetEnd;
+      const preferredLeft = Math.max(left, right - Math.floor((right - left) * 0.30));
+
+      let best = bestCutInRangeScored(text, preferredLeft, targetEnd, kind, isOkCut, maskObj, signal);
+      if (best === -1) best = bestCutInRangeScored(text, left, targetEnd, kind, isOkCut, maskObj, signal);
+
+      if (best === -1) {
+        const R = 3000;
+        let found = false;
+        for (let d = 1; d <= R; d++) {
+          if (signal && signal.aborted) throw new Error("aborted");
+          const a = fixSurrogateCut(targetEnd - d);
+          const b = fixSurrogateCut(targetEnd + d);
+          if (a >= left && isOkCut(a)) {
+            const prev = text[a - 1] || "", next = text[a] || "";
+            if (!(isWordChar(prev) && isWordChar(next))) { best = a; found = true; break; }
+          }
+          if (b <= right && isOkCut(b)) {
+            const prev = text[b - 1] || "", next = text[b] || "";
+            if (!(isWordChar(prev) && isWordChar(next))) { best = b; found = true; break; }
+          }
+        }
+        if (!found) {
+          const pos = fixSurrogateCut(targetEnd);
+          parts.push({ start, end: pos, forced: true });
+          start = Math.max(0, pos - overlap);
+          continue;
+        }
+      }
+
+      parts.push({ start, end: best, forced: false });
+      start = Math.max(0, best - overlap);
+    }
+
+    if (parts.length) parts[0].start = 0;
+    let merged = mergeSmallParts(parts, len, Math.round(softLimit), maskObj.innerBlocks || []);
+    if (merged.length && merged[0].start !== 0) merged[0].start = 0;
+    return merged;
+  };
+
+  const lowerBound = (arr, x) => {
+    let lo = 0, hi = arr.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (arr[mid] < x) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
+
+  const splitForcedByParts = async (text, n, hard, overlap, kind, signal) => {
+    text = String(text || "");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    if (signal && signal.aborted) throw new Error("aborted");
+    if (!len) return [];
+
+    n = Math.max(1, Math.min(n|0, len));
+
+    const maskObj = getUnsafeMaskForKind(text, kind);
+    const isOkCut = makeIsOkCut(text, maskObj);
+
+    const nudge = (pos, left, right, prevEnd, nextTarget) => {
+      pos = Math.max(left, Math.min(right, pos|0));
+      if (isOkCut(pos)) {
+        const rightLen = nextTarget - pos;
+        const leftLen = pos - prevEnd;
+        const avg = Math.round((nextTarget - prevEnd) / 2);
+        const minPart = Math.max(20, Math.round(avg * 0.08));
+        if (rightLen < minPart && leftLen >= minPart) {}
+        else if (leftLen < minPart && rightLen >= minPart) {}
+        else return pos;
+      }
+
+      const R2 = 1200;
+      for (let d = 0; d <= R2; d++) {
+        const a = pos - d;
+        if (a >= left && isOkCut(a)) {
+          const prev = text[a - 1] || "";
+          if (prev === "\n" || prev === ";" || prev === "," || prev === "}" || prev === ")" || prev === "]" || prev === ">") return a;
+        }
+        const b = pos + d;
+        if (b <= right && isOkCut(b)) {
+          const prev = text[b - 1] || "";
+          if (prev === "\n" || prev === ";" || prev === "," || prev === "}" || prev === ")" || prev === "]" || prev === ">") return b;
+        }
+      }
+
+      const R = 2000;
+      for (let d = 1; d <= R; d++) {
+        const a = pos - d, b = pos + d;
+        if (a >= left && isOkCut(a)) return a;
+        if (b <= right && isOkCut(b)) return b;
+      }
+      return pos;
+    };
+
+    const cuts = [0];
+    let start = 0;
+
+    for (let i = 1; i < n; i++) {
+      if (signal && signal.aborted) throw new Error("aborted");
+      await yieldIfNeeded(signal, len);
+
+      const ideal = Math.floor(len * i / n);
+      let left = start + 1;
+      let right = len - (n - i);
+      if (hard > 0) right = Math.min(right, start + hard);
+      if (right < left) right = left;
+      const nextTarget = Math.min(len, Math.floor(len * (i + 0.5) / n));
+
+      let cut = nudge(ideal, left, right, start, nextTarget);
+      if (cut <= start) cut = left;
+
+      cuts.push(cut);
+      start = cut;
+    }
+    cuts.push(len);
+
+    const parts = [];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const baseStart = cuts[i];
+      const s = (i === 0) ? baseStart : Math.max(0, baseStart - overlap);
+      const e = cuts[i+1];
+      if (e > s) parts.push({ start: s, end: e, forced: true });
+    }
+    if (parts.length) parts[0].start = 0;
+
+    const merged = mergeSmallParts(parts, len, Math.round(len / n), maskObj.innerBlocks || []);
+    return merged;
+  };
+
+  const buildSafeCuts = (text, kind, hardLimit) => {
+    text = String(text||"");
+    kind = kind || detectKind(text);
+    hardLimit = Math.max(0, hardLimit|0);
+    const len = text.length;
+
+    const maskObj = getUnsafeMaskForKind(text, kind);
+    const unsafeMask = maskObj.mask;
+    const innerBlocks = maskObj.innerBlocks || [];
+    const cuts = [0];
+
+    const isOkCut = (pos) => {
+      if (pos <= 0 || pos >= len) return true;
+      for (const b of innerBlocks) if (pos > b.start && pos < b.end) {
+        const subIdx = pos - b.start;
+        const sub = text.slice(b.start, b.end);
+        const innerMaskObj = getUnsafeMaskForKind(sub, b.innerKind);
+        if (innerMaskObj.mask && innerMaskObj.mask[subIdx]) return false;
+        if (isUnsafeCutToken(text, pos)) return false;
+        return true;
+      }
+      if (unsafeMask && unsafeMask[pos]) return false;
+      if (isUnsafeCutToken(text, pos)) return false;
+      return true;
+    };
+
+    for (let i = 0; i < len; i++) {
+      if (hardLimit > 0 && i > hardLimit) break;
+      const ch = text[i];
+      if (ch === ";" || ch === "," || ch === "}" || ch === ")" || ch === "]" || ch === ">") {
+        if (text[i+1] !== "\n") continue;
+      } else if (ch !== "\n") {
+        continue;
+      }
+
+      const pos = i + 1;
+      if (!isOkCut(pos)) continue;
+      const a = text[pos - 1] || "";
+      const b = text[pos] || "";
+      if (isWordChar(a) && isWordChar(b)) continue;
+      cuts.push(pos);
+    }
+
+    for (const b of innerBlocks) {
+      cuts.push(b.start);
+      cuts.push(b.end);
+    }
+
+    cuts.push(len);
+    cuts.sort((a,b)=>a-b);
+    if (cuts[0] !== 0) cuts.unshift(0);
+    if (cuts[cuts.length-1] !== len) cuts.push(len);
+    return cuts;
+  };
+
+  const splitByPartsCountBalanced = async (text, requestedParts, hard, overlap, kind, signal) => {
+    text = String(text||"");
+    kind = kind || detectKind(text);
+    const len = text.length;
+    requestedParts = Math.max(1, requestedParts|0);
+    hard = Math.max(0, hard|0);
+    overlap = Math.max(0, overlap|0);
+
+    if (signal && signal.aborted) throw new Error("aborted");
+    if (len === 0) return [];
+    if (requestedParts === 1) return [{ start:0, end:len, forced:false }];
+
+    const maskObj = getUnsafeMaskForKind(text, kind);
+    const safeCuts = buildSafeCuts(text, kind, 0);
+    const target = len / requestedParts;
+
+    const cuts = [0];
+    let prev = 0;
+
+    for (let i = 1; i < requestedParts; i++) {
+      if (signal && signal.aborted) throw new Error("aborted");
+      await yieldIfNeeded(signal, len);
+
+      const ideal = Math.round(target * i);
+      let left = prev + 1;
+      let right = len - (requestedParts - i);
+      if (hard > 0) right = Math.min(right, prev + hard);
+      if (right < left) right = left;
+
+      const idx = lowerBound(safeCuts, ideal);
+      let best = null;
+
+      for (let j = Math.max(0, idx-48); j < Math.min(safeCuts.length, idx+48); j++) {
+        const c = safeCuts[j];
+        if (c < left || c > right) continue;
+        const prevCh = text[c - 1] || "";
+        const tier = (prevCh === "\n") ? 0 : 1;
+        const score = Math.abs(c - ideal) * 10 + tier;
+        if (best === null || score < best.score) best = { pos: c, score };
+      }
+
+      if (!best) {
+        return await splitForcedByParts(text, requestedParts|0, hard, overlap, kind, signal);
+      }
+
+      cuts.push(best.pos);
+      prev = best.pos;
+    }
+
+    cuts.push(len);
+    let parts = partsFromCuts(cuts, overlap);
+    parts = mergeSmallParts(parts, len, Math.round(len / requestedParts), maskObj.innerBlocks || []);
+    return parts;
+  };
+
+  const normalizeAndValidateParts = (parts, len) => {
+    if (!Array.isArray(parts) || parts.length === 0) return [];
+    const res = [];
+    for (const p of parts) {
+      let s = Math.max(0, Math.min(len, p.start|0));
+      let e = Math.max(0, Math.min(len, p.end|0));
+      if (e <= s) continue;
+      res.push({ start: s, end: e, forced: !!p.forced });
+    }
+    if (!res.length) return [];
+    res.sort((a,b)=>a.start-b.start || a.end-b.end);
+    res[0].start = 0;
+    res[res.length-1].end = len;
+
+    for (let i=1;i<res.length;i++){
+      if (res[i].end <= res[i].start) res[i].end = Math.min(len, res[i].start + 1);
+      if (res[i].end <= res[i-1].start) return [];
+    }
+    return res;
+  };
+
+  const getPartsStats = (parts) => {
+    if (!Array.isArray(parts) || !parts.length) {
+      return { count: 0, min: 0, max: 0, avg: 0, total: 0 };
+    }
+    let min = Infinity, max = 0, total = 0;
+    for (const p of parts) {
+      const lenp = Math.max(0, (p.end|0) - (p.start|0));
+      if (lenp < min) min = lenp;
+      if (lenp > max) max = lenp;
+      total += lenp;
+    }
+    return { count: parts.length, min, max, avg: Math.round(total / parts.length), total };
+  };
+
+  const getRebuiltLength = (text, partsMeta) => {
+    if (!partsMeta || !partsMeta.length) return 0;
+    let rebuiltLen = 0;
+    for (let i = 0; i < partsMeta.length; i++) {
+      const p = partsMeta[i];
+      const chunkLen = Math.max(0, p.end - p.start);
+      if (i === 0) rebuiltLen += chunkLen;
+      else {
+        const prevEnd = partsMeta[i - 1].end;
+        const curStart = p.start;
+        const ov = Math.max(0, prevEnd - curStart);
+        rebuiltLen += Math.max(0, chunkLen - ov);
+      }
+    }
+    return rebuiltLen;
+  };
+
+  const buildSplitStatusText = (partsMeta, options = {}) => {
+    const stats = getPartsStats(partsMeta);
+    if (!stats.count) return "Разделение не выполнено.";
+
+    const { mode = "chars", softLimit = 0, hardLimit = 0, overlap = 0 } = options;
+
+    let limitText = "";
+    if (hardLimit > 0) limitText = `без превышения hard limit ${hardLimit}.`;
+    else if (mode === "chars" && softLimit > 0) limitText = `без превышения лимита ${softLimit}.`;
+    else limitText = "с максимально равномерным распределением.";
+
+    let overlapText = overlap > 0 ? ` Использован overlap: ${overlap}.` : "";
+
+    return `Разделено на ${stats.count} частей ${limitText} Среднее: ${stats.avg}. Диапазон: ${stats.min}–${stats.max}.${overlapText}`;
+  };
+
+  // -------------------- Rendering --------------------
+  const updateTogglePreviewButtonState = () => {
+    const wraps = els.parts.querySelectorAll(".preWrap");
+    const anyOpen = Array.from(wraps).some(w => !w.classList.contains("hidden"));
+    els.btnTogglePreview.textContent = anyOpen ? "Свернуть" : "Развернуть";
+  };
+
+  const sanitizeFileName = (name) => {
+    return String(name || "file").replace(/[^\w\-_.() ]+/g, "_").slice(0, 200);
+  };
+
+  const makePartNode = (idx, part, text, kind, totalParts) => {
+    const div = document.createElement("div");
+    div.className = "part";
+
+    const header = document.createElement("div");
+    header.className = "ph";
+    header.tabIndex = 0;
+    header.setAttribute("role", "button");
+    header.setAttribute("aria-label", `Часть ${idx+1} из ${totalParts}, диапазон ${part.start}-${part.end}`);
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+
+    const badgeIdx = document.createElement("span");
+    badgeIdx.className = "badge";
+    badgeIdx.textContent = `Часть ${idx+1}/${totalParts}`;
+
+    const badgeRange = document.createElement("span");
+    badgeRange.className = "badge";
+    badgeRange.textContent = `Диапазон: ${part.start}–${part.end}`;
+
+    const chars = part.end - part.start;
+    const bytes = utf8ByteLengthRange(text, part.start, part.end);
+
+    const badgeChars = document.createElement("span");
+    badgeChars.className = "badge";
+    badgeChars.textContent = `Символов: ${chars}`;
+
+    const badgeBytes = document.createElement("span");
+    badgeBytes.className = "badge";
+    badgeBytes.textContent = `Байт: ${bytes}`;
+
+    const badgeKind = document.createElement("span");
+    badgeKind.className = "badge kind";
+    badgeKind.textContent = kind.toUpperCase();
+
+    meta.append(badgeIdx, badgeRange, badgeChars, badgeBytes, badgeKind);
+
+    if (part.forced) {
+      const badgeForced = document.createElement("span");
+      badgeForced.className = "badge forced";
+      badgeForced.textContent = "forced";
+      meta.append(badgeForced);
+    }
+
+    const ctrls = document.createElement("div");
+    ctrls.className = "controls";
+
+    const btnCopy = document.createElement("button");
+    btnCopy.type = "button";
+    btnCopy.textContent = "Копировать";
+    btnCopy.setAttribute("aria-label", `Копировать часть ${idx+1}`);
+    ctrls.append(btnCopy);
+
+    header.append(meta, ctrls);
+
+    const preWrap = document.createElement("div");
+    preWrap.className = "preWrap hidden";
+
+    const btnDl = document.createElement("button");
+    btnDl.type = "button";
+    btnDl.textContent = "Скачать";
+    btnDl.className = "dlInPre";
+
+    const pre = document.createElement("pre");
+    pre.textContent = text.slice(part.start, part.end);
+
+    preWrap.append(btnDl, pre);
+
+    let dlHideTimer = null;
+    const hideDl = () => btnDl.classList.add("isHidden");
+    const showDl = () => btnDl.classList.remove("isHidden");
+    pre.addEventListener("scroll", () => {
+      hideDl();
+      if (dlHideTimer) clearTimeout(dlHideTimer);
+      dlHideTimer = setTimeout(showDl, 180);
+    }, { passive: true });
+
+    const toggle = () => {
+      const open = preWrap.classList.contains("hidden");
+      preWrap.classList.toggle("hidden", !open);
+      updateTogglePreviewButtonState();
+      if (!open) {
+        setTimeout(() => { header.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50);
+      }
+    };
+
+    header.addEventListener("click", toggle);
+    header.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+
+    btnCopy.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      try{
+        const chunk = text.slice(part.start, part.end);
+        const totalParts2 = lastParts.length || totalParts;
+        const chars2 = part.end - part.start;
+        const bytes2 = utf8ByteLengthRange(text, part.start, part.end);
+        const header2 = `/* ===== Часть ${idx+1}/${totalParts2} | kind ${kind} | Диапазон ${part.start}-${part.end} | Символов ${chars2} | Байт ${bytes2} ===== */`;
+        await copyText(header2 + "\n\n" + chunk, globalAbortController ? globalAbortController.signal : null);
+        setStatus({ code: "copied_part", text: `Скопировано: часть #${idx+1} (${chars2} символов).`, kind: "good" });
+      }catch(err){
+        console.error(err);
+        setStatus({ code: "copy_failed", text: "Не удалось скопировать часть.", kind: "bad" });
+      }
+    });
+
+    btnDl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const chunk = text.slice(part.start, part.end);
+      const totalParts2 = lastParts.length || totalParts;
+      const chars2 = part.end - part.start;
+      const bytes2 = utf8ByteLengthRange(text, part.start, part.end);
+      const header2 = `/* ===== Часть ${idx+1}/${totalParts2} | kind ${kind} | Диапазон ${part.start}-${part.end} | Символов ${chars2} | Байт ${bytes2} ===== */`;
+      const mime = kindToMime(kind);
+      const a = document.createElement("a");
+      const blob = new Blob([header2 + "\n\n" + chunk], { type: mime });
+      a.href = URL.createObjectURL(blob);
+      a.download = sanitizeFileName(`part_${idx+1}.${kindToExt(kind)}`);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    });
+
+    div.append(header, preWrap);
+    return div;
+  };
+
+  let lastText = "";
+  let lastKind = CODE_KIND.JS;
+  let lastParts = [];
+
+  const updateActionButtons = () => {
+    const hasText = !!(els.src.value && els.src.value.length);
+    const hasParts = !!(lastParts && lastParts.length);
+
+    const setDis = (el, v) => { if (el) el.disabled = !!v; };
+
+    setDis(els.btnSplit, !hasText && !isOperationActive());
+    setDis(els.btnSplitMobile, !hasText && !isOperationActive());
+
+    setDis(els.btnVerify, !hasParts);
+    setDis(els.btnVerifyMobile, !hasParts);
+
+    setDis(els.btnCopyAll, !hasParts);
+    setDis(els.btnCopyAllMobile, !hasParts);
+
+    setDis(els.btnDownloadAll, !hasParts);
+    setDis(els.btnDownloadAllMobile, !hasParts);
+
+    els.btnTogglePreview.disabled = !hasParts;
+    updateSplitButtonState();
+  };
+
+  const updateSplitButtonState = () => {
+    const btn = els.btnSplit;
+    const active = isOperationActive();
+    if (!btn) return;
+    btn.textContent = active ? "Отменить" : "Разделить";
+    btn.classList.toggle("btnCancel", active);
+    btn.setAttribute("aria-pressed", String(active));
+    if (els.btnSplitMobile) {
+      els.btnSplitMobile.textContent = active ? "Отменить" : "Разделить";
+      els.btnSplitMobile.classList.toggle("btnCancel", active);
+    }
+  };
+
+  const renderParts = (text, partsMeta, kind) => {
+    els.parts.innerHTML = "";
+    if (!partsMeta || !partsMeta.length) {
+      els.emptyState.classList.remove("hidden");
+      els.parts.appendChild(els.emptyState);
+      els.splitPill.textContent = "Частей: —";
+      updateActionButtons();
+      updateTogglePreviewButtonState();
+      return;
+    }
+    els.emptyState.classList.add("hidden");
+
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < partsMeta.length; i++) {
+      frag.appendChild(makePartNode(i, partsMeta[i], text, kind, partsMeta.length));
+    }
+    els.parts.appendChild(frag);
+
+    els.splitPill.textContent = `Частей: ${partsMeta.length}`;
+    updateActionButtons();
+    updateTogglePreviewButtonState();
+  };
+
+  const verifyRebuild = (text, partsMeta) => {
+    if (!partsMeta || !partsMeta.length) {
+      return { ok: false, reason: "Нет частей", rebuiltLength: 0, sourceLength: text.length };
+    }
+
+    let rebuilt = "";
+    for (let i = 0; i < partsMeta.length; i++) {
+      const p = partsMeta[i];
+      const chunk = text.slice(p.start, p.end);
+
+      if (i === 0) {
+        rebuilt += chunk;
+      } else {
+        const prevEnd = partsMeta[i-1].end;
+        const curStart = p.start;
+        const ov = Math.max(0, prevEnd - curStart);
+        rebuilt += chunk.slice(ov);
+      }
+    }
+    const ok = (rebuilt === text);
+    return { ok, reason: ok ? "OK" : "Mismatch", rebuiltLength: rebuilt.length, sourceLength: text.length };
+  };
+
+  let shaJobId = 0;
+  const updateSrcInfo = async () => {
+    const text = els.src.value || "";
+    els.srcInfo.textContent = `Символов: ${text.length}`;
+    els.eolPill.textContent = "EOL: " + detectEOL(text);
+
+    const bytes = utf8ByteLengthFast(text);
+    els.utf8Pill.textContent = "UTF‑8: " + (bytes ? `${bytes} байтов` : "—");
+
+    if (!text) {
+      els.shaPill.textContent = "SHA‑256: —";
+      updateActionButtons();
+      return;
+    }
+
+    const job = ++shaJobId;
+    els.shaPill.textContent = "SHA‑256: …";
+    if (bytes > MAX_PROCESS_BYTES) {
+      els.shaPill.textContent = "SHA‑256: (skipped, too large)";
+      updateActionButtons();
+      return;
+    }
+    try{
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest("SHA-256", enc.encode(text));
+      if (job !== shaJobId) return;
+      const bytesArr = new Uint8Array(buf);
+      let hex = "";
+      for (const b of bytesArr) hex += b.toString(16).padStart(2,"0");
+      els.shaPill.textContent = "SHA‑256: " + hex.slice(0, 16) + "…";
+    } catch {
+      if (job !== shaJobId) return;
+      els.shaPill.textContent = "SHA‑256: ошибка";
+    } finally {
+      if (job === shaJobId) updateActionButtons();
+    }
+  };
+  const updateSrcInfoDebounced = debounce(updateSrcInfo, 320);
+
+  const setModeUi = () => {
+    const mode = els.mode.value;
+    els.cellCharsPerPart.classList.toggle("hidden", mode !== "chars");
+    els.cellPartsCount.classList.toggle("hidden", mode !== "parts");
+  };
+
+  const splitNowInner = async (signal) => {
+    const t0 = performance.now();
+
+    lastText = els.src.value || "";
+    lastKind = detectKind(lastText);
+
+    const mode = els.mode.value;
+    const hard = clampInt(els.hardLimit.value, 0, 0, 1e9);
+    const overlap = clampInt(els.overlap.value, 0, 0, 1e9);
+
+    let partsMeta = [];
+    const safeOverlap0 = Math.max(0, overlap|0);
+
+    if (!lastText) {
+      lastParts = [];
+      renderParts(lastText, lastParts, lastKind);
+      setIdentity("warn", "ID: —");
+      setVerify(null, "Verify: —");
+      setPerf("—");
+      setStatus({ code: "empty", text: "Пустой текст.", kind: "warn" });
+      return;
+    }
+
+    const bytes = utf8ByteLengthFast(lastText);
+    if (bytes > MAX_PROCESS_BYTES) {
+      setStatus({ code: "too_large", text: `Текст слишком большой для интерактивной обработки (${Math.round(bytes/1024)} KB). Рекомендуется скачать файл.`, kind: "warn" });
+    }
+
+    let soft = 0;
+    let requestedParts = 0;
+
+    if (mode === "parts") {
+      requestedParts = clampInt(els.partsCount.value, 1, 1, MAX_PARTS);
+      partsMeta = await safeRun(() => splitByPartsCountBalanced(lastText, requestedParts, hard, safeOverlap0, lastKind, signal), "Не удалось разделить");
+    } else {
+      soft = clampInt(els.charsPerPart.value, DEFAULT_CHARS_PER_PART, 1, 1e9);
+      requestedParts = Math.max(1, Math.ceil(lastText.length / soft));
+      partsMeta = await safeRun(() => splitByCharsPremiumNoTail(lastText, soft, safeOverlap0, lastKind, signal), "Не удалось разделить");
+    }
+
+    if (signal && signal.aborted) throw new Error("aborted");
+
+    partsMeta = normalizeAndValidateParts(partsMeta, lastText.length);
+
+    let usedFallback = false;
+    if (!partsMeta.length) {
+      const fallbackN = Math.max(
+        1,
+        (mode === "parts")
+          ? clampInt(els.partsCount.value, 1, 1, MAX_PARTS)
+          : Math.max(1, Math.ceil(lastText.length / clampInt(els.charsPerPart.value, DEFAULT_CHARS_PER_PART, 1, 1e9)))
+      );
+
+      const fallbackHard = (mode === "chars")
+        ? clampInt(els.charsPerPart.value, DEFAULT_CHARS_PER_PART, 1, 1e9)
+        : hard;
+
+      partsMeta = await safeRun(() => splitForcedByParts(lastText, fallbackN, fallbackHard, safeOverlap0, lastKind, signal), "Не удалось использовать резервный алгоритм");
+      partsMeta = normalizeAndValidateParts(partsMeta, lastText.length);
+      usedFallback = true;
+    }
+
+    lastParts = partsMeta || [];
+    renderParts(lastText, lastParts, lastKind);
+
+    const t1 = performance.now();
+    setPerf(`${Math.round(t1 - t0)} мс`);
+
+    setIdentity("good", `ID: ${lastKind.toUpperCase()}`);
+    setVerify(null, "Verify: —");
+
+    let statusMsg = buildSplitStatusText(lastParts, {
+      mode,
+      softLimit: soft,
+      hardLimit: mode === "parts" ? hard : soft,
+      overlap: safeOverlap0,
+    });
+
+    if (usedFallback) statusMsg += " Использован резервный forced-split.";
+
+    setStatus({ code: "split_done", text: statusMsg, kind: "good", progress: 100 });
+    updateActionButtons();
+    return lastParts;
+  };
+
+  const splitNow = withLock(async () => {
+    if (isOperationActive()) {
+      if (globalAbortController) {
+        globalAbortController.abort();
+        setStatus({ code: "aborting", text: "Отмена...", kind: "warn" });
+      }
+      return;
+    }
+
+    const controller = beginOperation("split");
+    const signal = controller.signal;
+
+    try {
+      setStatus({ code: "splitting", text: "Разделение…", kind: "warn", progress: 0 });
+      await new Promise((r) => setTimeout(r, 0));
+      await splitNowInner(signal);
+    } catch (err) {
+      if (err && err.message === "aborted") {
+        setStatus({ code: "aborted", text: "Разделение отменено.", kind: "warn" });
+      } else {
+        console.error("splitNow error", err);
+        setStatus({ code: "split_error", text: "Ошибка разделения: " + (err && err.message ? err.message : String(err)), kind: "bad" });
+      }
+    } finally {
+      endOperation();
+    }
+  });
+
+  const verifyNowInner = async (signal) => {
+    if (!lastText || !lastParts.length) { setStatus({ code: "nothing_to_verify", text: "Нечего проверять.", kind: "warn" }); return; }
+    if (signal && signal.aborted) throw new Error("aborted");
+    const res = verifyRebuild(lastText, lastParts);
+
+    els.verifyPill.classList.remove("good","bad","warn");
+    if (res.ok) {
+      els.verifyPill.classList.add("good");
+      setVerify("good", "Verify: OK");
+      setStatus({ code: "verify_ok", text: `Проверка завершена: OK. Длина ${res.rebuiltLength}/${res.sourceLength}.`, kind: "good", progress: 100 });
+    } else {
+      els.verifyPill.classList.add("bad");
+      setVerify("bad", "Verify: Mismatch");
+      setStatus({ code: "verify_mismatch", text: `Проверка завершена: Mismatch. Длина ${res.rebuiltLength}/${res.sourceLength}.`, kind: "bad", progress: 0 });
+    }
+  };
+
+  const verifyNow = withLock(async () => {
+    if (isOperationActive()) {
+      setStatus({ code: "busy", text: "Дождитесь завершения текущей операции или отмените её.", kind: "warn" });
+      return;
+    }
+    const controller = beginOperation("verify");
+    const signal = controller.signal;
+    try {
+      setStatus({ code: "verifying", text: "Проверка…", kind: "warn", progress: 0 });
+      await new Promise((r) => setTimeout(r,0));
+      await verifyNowInner(signal);
+    } catch (err) {
+      if (err && err.message === "aborted") {
+        setStatus({ code: "aborted", text: "Проверка отменена.", kind: "warn" });
+      } else {
+        console.error("verifyNow error", err);
+        setStatus({ code: "verify_error", text: "Ошибка при проверке.", kind: "bad" });
+      }
+    } finally {
+      endOperation();
+    }
+  });
+
+  const copyAllNowInner = async (signal) => {
+    if (!lastText || !lastParts.length) { setStatus({ code: "nothing_to_copy", text: "Нечего копировать.", kind: "warn" }); return; }
+
+    const approxBytes = utf8ByteLengthFast(lastText);
+    if (approxBytes > MAX_COPY_BYTES) {
+      const ok = confirm("Текст очень большой для буфера обмена. Рекомендуется «Скачать всё». Всё равно копировать?");
+      if (!ok) return;
+    }
+
+    try{
+      const totalParts = lastParts.length;
+      const out = lastParts.map((p, i) => {
+        const chunk = lastText.slice(p.start, p.end);
+        const chars = p.end - p.start;
+        const bytes = utf8ByteLengthRange(lastText, p.start, p.end);
+        const header = `/* ===== Часть ${i+1}/${totalParts} | kind ${lastKind} | Диапазон ${p.start}-${p.end} | Символов ${chars} | Байт ${bytes} ===== */`;
+        return header + "\n\n" + chunk;
+      }).join("\n\n");
+      await copyText(out, signal);
+      setStatus({ code: "copied_all", text: `Скопировано всё (${out.length} символов).`, kind: "good", progress: 100 });
+    }catch(err){
+      if (err && err.message === "aborted") {
+        setStatus({ code: "aborted", text: "Копирование отменено.", kind: "warn" });
+      } else {
+        console.error(err);
+        setStatus({ code: "copy_all_failed", text: "Не удалось скопировать всё.", kind: "bad" });
+      }
+    }
+  };
+
+  const copyAllNow = withLock(async () => {
+    if (isOperationActive()) {
+      setStatus({ code: "busy", text: "Дождитесь завершения текущей операции или отмените её.", kind: "warn" });
+      return;
+    }
+    const controller = beginOperation("copy");
+    const signal = controller.signal;
+    try {
+      setStatus({ code: "copying", text: "Копирование…", kind: "warn", progress: 0 });
+      await new Promise((r) => setTimeout(r,0));
+      await copyAllNowInner(signal);
+    } catch (err) {
+      if (err && err.message === "aborted") {
+        setStatus({ code: "aborted", text: "Копирование отменено.", kind: "warn" });
+      } else {
+        console.error("copyAllNow error", err);
+        setStatus({ code: "copy_error", text: "Ошибка при копировании.", kind: "bad" });
+      }
+    } finally {
+      endOperation();
+    }
+  });
+
+  const downloadAllNowInner = async (signal) => {
+    if (!lastText || !lastParts.length) { setStatus({ code: "nothing_to_download", text: "Нечего скачивать.", kind: "warn" }); return; }
+    if (signal && signal.aborted) throw new Error("aborted");
+
+    try{
+      const totalParts = lastParts.length;
+      const body = lastParts.map((p, i) => {
+        const chunk = lastText.slice(p.start, p.end);
+        const chars = p.end - p.start;
+        const bytes = utf8ByteLengthRange(lastText, p.start, p.end);
+        const header = `/* ===== Часть ${i+1}/${totalParts} | kind ${lastKind} | Диапазон ${p.start}-${p.end} | Символов ${chars} | Байт ${bytes} ===== */`;
+        return header + "\n\n" + chunk;
+      }).join("\n\n");
+
+      const mime = kindToMime(lastKind);
+      const blob = new Blob([body], { type: mime });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = sanitizeFileName(`all_parts.${kindToExt(lastKind)}`);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch(_){} a.remove(); }, 0);
+
+      setStatus({ code: "downloaded_all", text: "Скачано: все части одним файлом.", kind: "good", progress: 100 });
+    } catch (e) {
+      if (e && e.message === "aborted") {
+        setStatus({ code: "aborted", text: "Скачивание отменено.", kind: "warn" });
+      } else {
+        console.error(e);
+        setStatus({ code: "download_failed", text: "Не удалось скачать всё.", kind: "bad" });
+      }
+    }
+  };
+
+  const downloadAllNow = withLock(async () => {
+    if (isOperationActive()) {
+      setStatus({ code: "busy", text: "Дождитесь завершения текущей операции или отмените её.", kind: "warn" });
+      return;
+    }
+    const controller = beginOperation("download");
+    const signal = controller.signal;
+    try {
+      setStatus({ code: "preparing_download", text: "Формирование скачивания…", kind: "warn", progress: 0 });
+      await new Promise((r) => setTimeout(r,0));
+      await downloadAllNowInner(signal);
+    } catch (err) {
+      if (err && err.message === "aborted") {
+        setStatus({ code: "aborted", text: "Скачивание отменено.", kind: "warn" });
+      } else {
+        console.error("downloadAllNow error", err);
+        setStatus({ code: "download_error", text: "Ошибка при скачивании.", kind: "bad" });
+      }
+    } finally {
+      endOperation();
+    }
+  });
+
+  const loadExample = () => {
+    els.src.value =
+`// Example
+function hello(name){
+  console.log("Hello, " + name);
+}
+
+// Long string to test splitting:
+const s = "0123456789".repeat(2000);
+console.log(s.length);`;
+  };
+
+  const applyTheme = (t) => {
+    document.documentElement.setAttribute("data-theme", t);
+    els.btnTheme.textContent = (t === "light") ? "☀️" : "🌙";
+    try { localStorage.setItem("theme", t); } catch {}
+  };
+
+  const toggleTheme = () => {
+    const cur = document.documentElement.getAttribute("data-theme") || "dark";
+    applyTheme(cur === "dark" ? "light" : "dark");
+  };
+
+  els.src.addEventListener("input", () => { updateSrcInfoDebounced(); });
+
+  els.btnTheme.addEventListener("click", toggleTheme);
+
+  const persistSettingsDebounced = debounce(() => saveSettings(readSettingsFromUI()), 200);
+  for (const el of [els.mode, els.charsPerPart, els.partsCount, els.hardLimit, els.overlap]) {
+    el.addEventListener("change", () => { setModeUi(); persistSettingsDebounced(); });
+    el.addEventListener("input", persistSettingsDebounced);
+  }
+
+  els.btnSplit.addEventListener("click", splitNow);
+  els.btnSplitMobile.addEventListener("click", splitNow);
+
+  els.btnVerify.addEventListener("click", verifyNow);
+  els.btnVerifyMobile.addEventListener("click", verifyNow);
+
+  els.btnCopyAll.addEventListener("click", copyAllNow);
+  els.btnCopyAllMobile.addEventListener("click", copyAllNow);
+
+  els.btnDownloadAll.addEventListener("click", downloadAllNow);
+  els.btnDownloadAllMobile.addEventListener("click", downloadAllNow);
+
+  els.btnClear.addEventListener("click", () => {
+    els.src.value = "";
+    lastText = "";
+    lastParts = [];
+    renderParts("", [], lastKind);
+    shaJobId++;
+    updateSrcInfoDebounced();
+    setStatus({ code: "cleared", text: "Очищено.", kind: "warn" });
+  });
+
+  els.btnLoadExample.addEventListener("click", () => {
+    loadExample();
+    updateSrcInfoDebounced();
+    setStatus({ code: "example_loaded", text: "Загружен пример.", kind: "good" });
+  });
+
+  els.btnPaste.addEventListener("click", async () => {
+    try{
+      const t = await pasteText();
+      if (t) els.src.value = t;
+      updateSrcInfoDebounced();
+      setStatus({ code: "pasted", text: "Вставлено.", kind: "good" });
+    }catch(err){
+      console.error(err);
+      setStatus({ code: "paste_failed", text: "Не удалось вставить.", kind: "bad" });
+    }
+  });
+
+  els.btnLoadFile.addEventListener("click", () => els.fileInput.click());
+  els.fileInput.addEventListener("change", async () => {
+    const f = els.fileInput.files && els.fileInput.files[0];
+    if (!f) return;
+    try{
+      const text = await f.text();
+      els.src.value = text;
+      updateSrcInfoDebounced();
+      setStatus({ code: "file_loaded", text: `Загружено из файла: ${f.name} (${text.length} символов).`, kind: "good" });
+    }catch(err){
+      setStatus({ code: "file_read_error", text: "Ошибка чтения файла.", kind: "bad" });
+      console.error(err);
+    }finally{
+      els.fileInput.value = "";
+    }
+  });
+
+  els.btnTogglePreview.addEventListener("click", () => {
+    const wraps = els.parts.querySelectorAll(".preWrap");
+    const anyOpen = Array.from(wraps).some(w => !w.classList.contains("hidden"));
+    for (const w of wraps) w.classList.toggle("hidden", anyOpen);
+    updateTogglePreviewButtonState();
+  });
+
+  els.src.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
+  els.src.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) {
+      try {
+        const text = await f.text();
+        els.src.value = text;
+        updateSrcInfoDebounced();
+        setStatus({ code: "file_dropped", text: `Загружено из файла: ${f.name} (${text.length} символов).`, kind: "good" });
+      } catch (err) {
+        console.error(err);
+        setStatus({ code: "file_drop_error", text: "Ошибка чтения файла при перетаскивании.", kind: "bad" });
+      }
+    } else {
+      const dt = e.dataTransfer.getData("text");
+      if (dt) {
+        els.src.value = dt;
+        updateSrcInfoDebounced();
+        setStatus({ code: "dnd_text", text: "Вставлено из перетаскивания.", kind: "good" });
+      }
+    }
+  });
+
+  // Init
+  (() => {
+    let theme = "dark";
+    try { theme = localStorage.getItem("theme") || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? "light" : "dark") || "dark"; } catch {}
+    applyTheme(theme);
+
+    try { els.appTitle.textContent = `Code Splitter v${APP_VERSION}`; } catch (e) {}
+
+    applySettingsToUI(loadSettings());
+    setModeUi();
+
+    updateSrcInfoDebounced();
+    setStatus({ code: "ready", text: "Готово.", kind: "good" });
+    setProgressBar(null);
+    updateActionButtons();
+  })();
+
+})(); 
+</script>
+</body>
+</html>
